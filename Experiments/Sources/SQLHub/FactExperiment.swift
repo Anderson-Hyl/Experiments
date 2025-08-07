@@ -53,7 +53,7 @@ public struct FactsView: View {
         Form {
             Section {
                 HeatMapView(items: facts) { fact, _ in
-                    RoundedRectangle(cornerRadius: 4, style: .circular)
+                    RoundedRectangle(cornerRadius: 8, style: .circular)
                         .fill(fact.heatColor)
                         .overlay {
                             VStack {
