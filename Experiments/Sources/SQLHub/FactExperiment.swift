@@ -20,53 +20,6 @@ public struct Fact: Identifiable, Sendable {
     }
 }
 
-public func factDB() throws -> any DatabaseWriter {
-    let database: any DatabaseWriter
-    @Dependency(\.context) var context
-    var migrator = DatabaseMigrator()
-    var configuration = Configuration()
-    configuration.prepareDatabase { db in
-        #if DEBUG
-            db.trace(options: .profile) {
-                if context == .live {
-                    logger.debug("\($0.expandedDescription)")
-                } else {
-                    print("\($0.expandedDescription)")
-                }
-            }
-        #endif
-    }
-    if context == .preview {
-        database = try DatabaseQueue(configuration: configuration)
-    } else {
-        let path =
-            context == .live
-            ? URL.documentsDirectory.appending(component: "db.sqlite").path()
-            : URL.temporaryDirectory.appending(
-                component: "\(UUID().uuidString)-db.sqlite"
-            ).path()
-        logger.info("open \(path)")
-        database = try DatabasePool(path: path, configuration: configuration)
-    }
-    migrator.registerMigration("Create 'facts' table") { db in
-        try #sql(
-            """
-            CREATE TABLE "facts" (
-              "id" INTEGER PRIMARY KEY,
-              "body" TEXT NOT NULL,
-              "count" INTEGER NOT NULL DEFAULT 1,
-              "updatedAt" TEXT NOT NULL
-            )
-            """
-        )
-        .execute(db)
-    }
-    try migrator.migrate(database)
-    return database
-}
-
-private let logger = Logger(subsystem: "SQLHub", category: "Fact")
-
 extension Fact: HeatMapValue {
     public var heat: Double {
         Double(count)
@@ -123,6 +76,7 @@ public struct FactsView: View {
                 }
             }
         }
+        .navigationTitle("Facts")
         .task {
             do {
                 var count = 0
@@ -142,7 +96,7 @@ public struct FactsView: View {
                             try Fact.upsert {
                                 Fact.Draft(
                                     id: number,
-                                    body: currentFact.body + "\n" + fact,
+                                    body: currentFact.body + "\n\n" + fact,
                                     count: currentFact.count + 1,
                                     updatedAt: Date()
                                 )
@@ -165,15 +119,6 @@ public struct FactsView: View {
                 debugPrint("Fetch Fact Error: \(error)")
             }
         }
-    }
-}
-
-#Preview {
-    let _ = prepareDependencies {
-        $0.defaultDatabase = try! factDB()
-    }
-    NavigationStack {
-        FactsView()
     }
 }
 

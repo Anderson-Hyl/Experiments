@@ -6,12 +6,14 @@ import SharingGRDB
 struct ExperimentsApp: App {
     init() {
         prepareDependencies {
-            $0.defaultDatabase = try! factDB()
+            $0.defaultDatabase = try! applicationDB()
         }
     }
     var body: some Scene {
         WindowGroup {
-            FactsView()
+            NavigationStack {
+                ContentView()
+            }
         }
     }
 }

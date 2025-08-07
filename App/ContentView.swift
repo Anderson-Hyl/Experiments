@@ -1,21 +1,17 @@
-//
-//  ContentView.swift
-//  Experiments
-//
-//  Created by anderson on 2025/8/7.
-//
-
 import SwiftUI
+import SQLHub
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Form {
+            NavigationLink {
+                FactsView()
+            } label: {
+                Text("Facts Experiment")
+            }
+            .foregroundStyle(.primary)
         }
-        .padding()
+        .navigationTitle("Experiments")
     }
 }
 
