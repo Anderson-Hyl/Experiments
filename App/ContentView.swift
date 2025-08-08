@@ -1,5 +1,6 @@
 import SwiftUI
 import SQLHub
+import ComposableArchitecture
 
 struct ContentView: View {
     var body: some View {
@@ -9,8 +10,20 @@ struct ContentView: View {
             } label: {
                 Text("Facts Experiment")
             }
-            .foregroundStyle(.primary)
+            
+            
+            NavigationLink {
+                RemindersListView(
+                    store: Store(
+                        initialState: RemindersListReducer.State(),
+                        reducer: { RemindersListReducer() }
+                    )
+                )
+            } label: {
+                Text("Reminders Experiment")
+            }
         }
+        .foregroundStyle(.primary)
         .navigationTitle("Experiments")
     }
 }
