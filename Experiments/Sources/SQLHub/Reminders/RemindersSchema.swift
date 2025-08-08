@@ -14,6 +14,8 @@ public struct RemindersList: Identifiable, Equatable, Sendable {
     public static var defaultTitle: String { "Personal" }
 }
 
+extension RemindersList.Draft: Identifiable, Equatable, Sendable {}
+
 @Table
 public struct Reminder: Identifiable, Equatable, Sendable {
     public let id: UUID
@@ -48,6 +50,8 @@ public struct Reminder: Identifiable, Equatable, Sendable {
         self.title = title
     }
 }
+
+extension Reminder.Draft: Identifiable, Hashable, Sendable {}
 
 public enum Priority: Int, QueryBindable {
     case low = 1
