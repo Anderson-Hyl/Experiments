@@ -104,6 +104,7 @@ public struct RemindersListView: View {
         List {
             Section {
                 remindersListHeatMap
+                    .padding(.horizontal, -20)
             }
         }
         .listStyle(.insetGrouped)
@@ -157,7 +158,7 @@ public struct RemindersListView: View {
     }
     
     private var remindersListHeatMap: some View {
-        HeatMapView(items: store.remindersList) { reminderListState, normalized in
+        HeatMapView(items: store.remindersList, spacing: 2) { reminderListState, normalized in
             RemindersListHeatMapCell(
                 reminderListState: reminderListState,
                 normalized: normalized

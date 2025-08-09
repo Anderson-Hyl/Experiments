@@ -21,7 +21,8 @@ public struct ReminderFormReducer {
         var remindersList: RemindersList
         @Presents var destination: Destination.State?
         var reminder: Reminder.Draft
-        var selectedTags: [Tag] = []
+        
+        @Shared var selectedTags: [Tag]
         
         public init(reminder: Reminder.Draft, remindersList: RemindersList) {
             self.reminder = reminder
@@ -29,6 +30,7 @@ public struct ReminderFormReducer {
                 wrappedValue: remindersList,
                 RemindersList.find(remindersList.id)
             )
+            self._selectedTags = Shared(value: [])
         }
     }
     
@@ -36,6 +38,7 @@ public struct ReminderFormReducer {
     public enum Action: ViewAction, BindableAction {
         case binding(BindingAction<State>)
         case destination(PresentationAction<Destination.Action>)
+        case selectedTagsResult([Tag])
         case view(View)
         
         public enum View {
@@ -48,7 +51,9 @@ public struct ReminderFormReducer {
     
     public var body: some ReducerOf<Self> {
         BindingReducer()
-        Reduce { state, action in
+        Reduce {
+            state,
+            action in
             switch action {
             case .binding(\.reminder.remindersListID):
                 let updatedRemindersListID = state.reminder.remindersListID
@@ -59,10 +64,33 @@ public struct ReminderFormReducer {
                 return .none
             case .destination:
                 return .none
-            case .view(.onTask):
+            case let .selectedTagsResult(tags):
+                state.$selectedTags.withLock {
+                    $0 = tags
+                }
                 return .none
+            case .view(.onTask):
+                return .run { [reminderID = state.reminder.id] send in
+                    guard let reminderID else {
+                        return
+                    }
+                    @Dependency(\.defaultDatabase) var database
+                    let selectedTags: [Tag] = try await database.read { db in
+                        try Tag
+                            .order(by: \.title)
+                            .join(ReminderTag.all) { $0.id.eq($1.tagID) }
+                            .where { $1.reminderID.eq(reminderID) }
+                            .select { tag, _ in tag }
+                            .fetchAll(db)
+                    }
+                    await send(.selectedTagsResult(selectedTags))
+                }
             case .view(.onTappedTags):
-                state.destination = .tags(TagsReducer.State())
+                state.destination = .tags(
+                    TagsReducer.State(
+                        selectedTags: state.$selectedTags
+                    )
+                )
                 return .none
             case .view(.onTappedSaveButton):
                 return .run { [reminder = state.reminder] send in
@@ -120,6 +148,13 @@ public struct ReminderForm: View {
                         Text("Tags")
                             .foregroundStyle(Color(.label))
                         Spacer()
+                        if let tagsDetail {
+                            tagsDetail
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .font(.callout)
+                                .foregroundStyle(.gray)
+                        }
                         Image(systemName: "chevron.right")
                     }
                 }
@@ -147,7 +182,7 @@ public struct ReminderForm: View {
                 if let dueDate = store.reminder.dueDate {
                     DatePicker(
                         "",
-                        selection: .constant(Date()),
+                        selection: $store.reminder.dueDate[coalesce: dueDate],
                         displayedComponents: [.date, .hourAndMinute]
                     )
                     .padding(.vertical, 2)
@@ -195,13 +230,15 @@ public struct ReminderForm: View {
                 }
             }
         }
+        .padding(.top, -28)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Save") {
                     send(.onTappedSaveButton)
                 }
+                .disabled(store.reminder.title.isEmpty)
             }
-            
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
                     send(.onTappedCancelButton)
@@ -209,11 +246,25 @@ public struct ReminderForm: View {
             }
         }
     }
+    
+    private var tagsDetail: Text? {
+        guard let tag = store.selectedTags.first else { return nil }
+        return store.$selectedTags.wrappedValue.dropFirst().reduce(Text("#\(tag.title)")) { result, tag in
+            result + Text(" #\(tag.title)")
+        }
+    }
 }
 
 extension Reminder.Draft {
-    var isDateSet: Bool {
+    fileprivate var isDateSet: Bool {
         get { dueDate != nil }
         set { dueDate = newValue ? Date() : nil }
     }
+}
+
+extension Optional {
+  fileprivate subscript(coalesce coalesce: Wrapped) -> Wrapped {
+    get { self ?? coalesce }
+    set { self = newValue }
+  }
 }
