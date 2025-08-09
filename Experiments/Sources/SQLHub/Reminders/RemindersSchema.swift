@@ -3,7 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 @Table
-public struct RemindersList: Identifiable, Equatable, Sendable {
+public struct RemindersList: Identifiable, Equatable, Hashable, Sendable {
     public let id: UUID
     @Column(as: Color.HexRepresentation.self)
     public var color: Color = Self.defaultColor
@@ -14,7 +14,7 @@ public struct RemindersList: Identifiable, Equatable, Sendable {
     public static var defaultTitle: String { "Personal" }
 }
 
-extension RemindersList.Draft: Identifiable, Equatable, Sendable {}
+extension RemindersList.Draft: Identifiable, Equatable, Hashable, Sendable {}
 
 @Table
 public struct Reminder: Identifiable, Equatable, Sendable {
@@ -60,7 +60,7 @@ public enum Priority: Int, QueryBindable {
 }
 
 @Table
-public struct Tag: Identifiable, Sendable {
+public struct Tag: Identifiable, Equatable, Sendable {
     public let id: UUID
     public var title = ""
     
