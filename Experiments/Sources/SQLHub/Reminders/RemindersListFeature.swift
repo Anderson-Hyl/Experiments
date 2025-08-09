@@ -111,6 +111,7 @@ public struct RemindersListReducer {
             case onTask
             case onTapRemindersList(RemindersList.ID)
             case onTapNewReminder
+            case onTapHeatMapCell(RemindersDetailReducer.DetailType)
         }
     }
 
@@ -156,6 +157,14 @@ public struct RemindersListReducer {
                     )
                 )
                 return .none
+                
+            case let .view(.onTapHeatMapCell(detailType)):
+                state.destination = .remindersDetail(
+                    RemindersDetailReducer.State(
+                        detailType: detailType
+                    )
+                )
+                return .none
             }
         }
         .ifLet(\.$destination, action: \.destination)
@@ -185,7 +194,7 @@ public struct RemindersListView: View {
             Section {
                 ForEach(store.remindersList) { remindersListState in
                     Button {
-                        
+                        send(.onTapRemindersList(remindersListState.remindersList.id))
                     } label: {
                         HStack {
                             Image(systemName: "list.bullet.circle.fill")
@@ -277,8 +286,16 @@ public struct RemindersListView: View {
         ) { heatMapCellModel, _ in
             RemindersListHeatMapCell(
                 model: heatMapCellModel
-            ) {
-                
+            ) { [title = heatMapCellModel.title] in
+                let reminderDetailType: RemindersDetailReducer.DetailType = switch title {
+                case "All": .all
+                case "Today": .today
+                case "Scheduled": .scheduled
+                case "Flagged": .flagged
+                case "Completed": .completed
+                default: .all
+                }
+                send(.onTapHeatMapCell(reminderDetailType))
             }
         }
         .listRowBackground(Color.clear)

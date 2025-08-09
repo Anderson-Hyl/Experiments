@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Anderson-Hyl/HeatMap.git",
       "state" : {
-        "revision" : "91dc94b30413aa9f6b4c185dc20b2aaa4f3ffecb",
-        "version" : "1.0.1"
+        "revision" : "d9f755dd68a82754496d6d79d512f9edbd6620f0",
+        "version" : "1.0.2"
       }
     },
     {

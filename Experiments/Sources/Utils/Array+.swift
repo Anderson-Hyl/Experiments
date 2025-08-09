@@ -1,5 +1,5 @@
 import Base
-import UIKit
+import Foundation
 
 public extension Array {
     /* Get head and tail of the array. */

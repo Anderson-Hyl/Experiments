@@ -146,7 +146,7 @@ public struct ReminderForm: View {
                             .font(.title)
                             .foregroundStyle(.blue.gradient)
                         Text("Tags")
-                            .foregroundStyle(Color(.label))
+                            .foregroundStyle(.primary)
                         Spacer()
                         if let tagsDetail {
                             tagsDetail

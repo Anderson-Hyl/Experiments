@@ -20,7 +20,6 @@ public struct RemindersListForm: View {
                       .padding()
                       .textFieldStyle(.plain)
                 }
-                .background(Color(.secondarySystemBackground))
                 .clipShape(.buttonBorder)
             }
             ColorPicker("Color", selection: $remindersList.color)

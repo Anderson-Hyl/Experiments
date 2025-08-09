@@ -16,12 +16,6 @@ public extension Sequence where Iterator.Element == Double {
     }
 }
 
-public extension Sequence where Iterator.Element == CGFloat {
-    var sum: CGFloat {
-        return reduce(CGFloat(), +)
-    }
-}
-
 public extension Sequence {
     var first: Self.Element? {
         var iterator = self.makeIterator()
@@ -44,16 +38,6 @@ public extension Sequence {
             }
         }
         return nil
-    }
-}
-
-public extension Sequence where Element: FloatingPoint {
-    var count: Int { return reduce(0) { acc, row in acc + 1 } }
-    
-    func sd() -> Element {
-        let mean = self.reduce(0, +) / Element(self.count)
-        let v = self.reduce(0) { $0 + ($1 - mean) * ($1 - mean) }
-        return sqrt(v / (Element(self.count) - 1))
     }
 }
 
