@@ -51,6 +51,16 @@ public struct Reminder: Identifiable, Equatable, Sendable {
     }
 }
 
+extension Reminder.TableColumns {
+    var isScheduled: some QueryExpression<Bool> {
+        !isCompleted && dueDate.isNot(nil)
+    }
+    var isToday: some QueryExpression<Bool> {
+        @Dependency(\.date.now) var now
+        return !isCompleted && #sql("coalesce(date(\(dueDate)) = date(\(now)), 0)")
+    }
+}
+
 extension Reminder.Draft: Identifiable, Hashable, Sendable {}
 
 public enum Priority: Int, QueryBindable {
@@ -60,7 +70,7 @@ public enum Priority: Int, QueryBindable {
 }
 
 @Table
-public struct Tag: Identifiable, Equatable, Sendable {
+public struct Tag: Identifiable, Equatable, Hashable, Sendable {
     public let id: UUID
     public var title = ""
     

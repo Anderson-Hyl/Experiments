@@ -1,17 +1,19 @@
 import ComposableArchitecture
-import SwiftUI
-import SharingGRDB
 import HeatMap
+import SharingGRDB
+import SwiftUI
+import Utils
 
 @Reducer
 public struct RemindersListReducer {
     public init() {}
-    
+
     @Reducer(state: .equatable)
     public enum Destination {
         case reminderForm(ReminderFormReducer)
+        case remindersDetail(RemindersDetailReducer)
     }
-    
+
     @ObservableState
     public struct State: Equatable {
         @FetchAll(
@@ -29,49 +31,127 @@ public struct RemindersListReducer {
                 },
             animation: .default
         ) var remindersList
-        
+
         @Presents
         var destination: Destination.State?
-        
+
+        @FetchOne(
+            Reminder.select {
+                Stats.Columns(
+                    allCount: $0.count(filter: !$0.isCompleted),
+                    flaggedCount: $0.count(filter: $0.isFlagged),
+                    scheduledCount: $0.count(filter: $0.isScheduled),
+                    todayCount: $0.count(filter: $0.isToday),
+                    completedCount: $0.count(filter: $0.isCompleted),
+                )
+            }
+        )
+        var stats = Stats()
+
         public init() {}
-        
+
         @Selection
-        public struct RemindersListState: Identifiable, Equatable {
+        public struct RemindersListState: Identifiable, Equatable, Sendable {
             public var id: RemindersList.ID { remindersList.id }
             public var remindersCount: Int
             public var remindersList: RemindersList
         }
+
+        @Selection
+        public struct Stats: Sendable, Equatable {
+            var allCount = 0
+            var flaggedCount = 0
+            var scheduledCount = 0
+            var todayCount = 0
+            var completedCount = 0
+        }
+
+        var heatMapCellModels: [RemindersListHeatMapCell.Model] {
+            [
+                RemindersListHeatMapCell.Model(
+                    colors: [0x2FB59B].map { Color(hex: $0) }, // teal (higher saturation)
+                    count: stats.todayCount,
+                    iconName: "sun.max.fill",
+                    title: "Today",
+                ),
+                RemindersListHeatMapCell.Model(
+                    colors: [0x5E79E6].map { Color(hex: $0) }, // vivid periwinkle
+                    count: stats.scheduledCount,
+                    iconName: "calendar.badge.clock",
+                    title: "Scheduled",
+                ),
+                RemindersListHeatMapCell.Model(
+                    colors: [0x2FB59B, 0x3DAE83, 0x6FBF5F, 0x5AA9C9, 0x5E79E6, 0xC56DA4, 0xE66D74].map { Color(hex: $0) }, // expanded, bridge-stop palette for gradient harmony
+                    count: stats.allCount,
+                    iconName: "square.grid.3x3.fill",
+                    title: "All",
+                ),
+                RemindersListHeatMapCell.Model(
+                    colors: [0xE66D74].map { Color(hex: $0) }, // soft red (more saturated)
+                    count: stats.flaggedCount,
+                    iconName: "flag.fill",
+                    title: "Flagged",
+                ),
+                RemindersListHeatMapCell.Model(
+                    colors: [0x6FBF5F].map { Color(hex: $0) }, // leaf green distinct from Today
+                    count: stats.completedCount,
+                    iconName: "checkmark.circle.fill",
+                    title: "Completed",
+                ),
+            ]
+        }
     }
-    
+
     @CasePathable
     public enum Action: ViewAction {
         case view(View)
         case destination(PresentationAction<Destination.Action>)
-        
+
         public enum View {
             case onTask
             case onTapRemindersList(RemindersList.ID)
             case onTapNewReminder
         }
     }
-    
+
     public var body: some ReducerOf<Self> {
-        Reduce { state, action in
+        Reduce {
+            state,
+            action in
             switch action {
             case .destination:
                 return .none
             case .view(.onTask):
                 return .none
-            case .view(.onTapRemindersList): // TODO: push to reminders list
+            case .view(.onTapRemindersList(let remindersListID)):
+                guard
+                    let remindersListState = state.remindersList.first(where: {
+                        $0.id == remindersListID
+                    })
+                else {
+                    return .none
+                }
+                state.destination = .remindersDetail(
+                    RemindersDetailReducer.State(
+                        detailType: .remindersList(
+                            remindersListState.remindersList
+                        )
+                    )
+                )
                 return .none
             case .view(.onTapNewReminder):
-                guard let remindersList = state.remindersList.map(\.remindersList).first else {
+                guard
+                    let remindersList = state.remindersList.map(\.remindersList)
+                        .first
+                else {
                     reportIssue("There must be at least one list.")
                     return .none
                 }
                 state.destination = .reminderForm(
                     ReminderFormReducer.State(
-                        reminder: Reminder.Draft(remindersListID: remindersList.id),
+                        reminder: Reminder.Draft(
+                            remindersListID: remindersList.id
+                        ),
                         remindersList: remindersList,
                     )
                 )
@@ -82,21 +162,16 @@ public struct RemindersListReducer {
     }
 }
 
-extension RemindersListReducer.State.RemindersListState: HeatMapValue {
+extension RemindersListHeatMapCell.Model: HeatMapValue {
     public var heat: Double {
-        Double(remindersCount)
+        Double(count)
     }
 }
 
-
 @ViewAction(for: RemindersListReducer.self)
 public struct RemindersListView: View {
-    @Bindable
-    public var store: StoreOf<RemindersListReducer>
-    
-    @State
-    private var remindersListForm: RemindersList.Draft?
-    
+    @Bindable public var store: StoreOf<RemindersListReducer>
+    @State private var remindersListForm: RemindersList.Draft?
     public init(store: StoreOf<RemindersListReducer>) {
         self.store = store
     }
@@ -106,6 +181,36 @@ public struct RemindersListView: View {
                 remindersListHeatMap
                     .padding(.horizontal, -20)
             }
+            
+            Section {
+                ForEach(store.remindersList) { remindersListState in
+                    Button {
+                        
+                    } label: {
+                        HStack {
+                            Image(systemName: "list.bullet.circle.fill")
+                                .font(.largeTitle)
+                                .foregroundStyle(remindersListState.remindersList.color)
+                                .background(
+                                    Color.white.clipShape(Circle()).padding(4)
+                                )
+                            Text(remindersListState.remindersList.title)
+                            Spacer()
+                            Text("\(remindersListState.remindersCount)")
+                                .foregroundStyle(.gray)
+                        }
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text("My Lists")
+                  .font(.system(.title2, design: .rounded, weight: .bold))
+                  .foregroundStyle(Color(.label))
+                  .textCase(nil)
+                  .padding(.top, -16)
+            }
+            .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
         }
         .listStyle(.insetGrouped)
         .toolbar {
@@ -119,9 +224,9 @@ public struct RemindersListView: View {
                             .bold()
                             .font(.title3)
                     }
-                    
+
                     Spacer()
-                    
+
                     Button {
                         remindersListForm = RemindersList.Draft()
                     } label: {
@@ -155,15 +260,25 @@ public struct RemindersListView: View {
                 .navigationTitle("New Reminder")
             }
         }
+        .navigationDestination(
+            item: $store.scope(
+                state: \.destination?.remindersDetail,
+                action: \.destination.remindersDetail
+            )
+        ) { remindersDetailStore in
+            RemindersDetailView(store: remindersDetailStore)
+        }
     }
-    
+
     private var remindersListHeatMap: some View {
-        HeatMapView(items: store.remindersList, spacing: 2) { reminderListState, normalized in
+        HeatMapView(
+            items: store.heatMapCellModels,
+            minAreaRatio: 0.1,
+        ) { heatMapCellModel, _ in
             RemindersListHeatMapCell(
-                reminderListState: reminderListState,
-                normalized: normalized
+                model: heatMapCellModel
             ) {
-                send(.onTapRemindersList(reminderListState.remindersList.id))
+                
             }
         }
         .listRowBackground(Color.clear)
@@ -171,46 +286,84 @@ public struct RemindersListView: View {
     }
 }
 
-
 public struct RemindersListHeatMapCell: View {
-    let reminderListState: RemindersListReducer.State.RemindersListState
-    let normalized: Double
-    let onTapRemindersList: () -> Void
-    public init(
-        reminderListState: RemindersListReducer.State.RemindersListState,
-        normalized: Double,
-        onTapRemindersList: @escaping () -> Void,
-    ) {
-        self.reminderListState = reminderListState
-        self.normalized = normalized
-        self.onTapRemindersList = onTapRemindersList
+    public struct Model: Identifiable {
+        let colors: [Color]
+        let count: Int
+        let iconName: String
+        let title: String
+
+        public init(
+            colors: [Color],
+            count: Int,
+            iconName: String,
+            title: String
+        ) {
+            self.colors = colors
+            self.count = count
+            self.iconName = iconName
+            self.title = title
+        }
+
+        public var id: String {
+            title
+        }
     }
-    
+    let model: Model
+    let onTapHeatMapCell: () -> Void
+    public init(
+        model: Model,
+        onTapHeatMapCell: @escaping () -> Void,
+    ) {
+        self.model = model
+        self.onTapHeatMapCell = onTapHeatMapCell
+    }
+
     public var body: some View {
         Button {
-            onTapRemindersList()
+            onTapHeatMapCell()
         } label: {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(reminderListState.remindersList.color)
-                    .overlay {
-                        VStack {
-                            Text("\(reminderListState.remindersList.title)")
-                                .foregroundStyle(.white)
-                                .font(.headline)
-                                .bold()
-                            Text("\(reminderListState.remindersCount)")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.white.opacity(0.8))
-                                .contentTransition(.numericText())
-                        }
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(
+                LinearGradient(
+                    gradient: Gradient(colors: model.colors),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                HStack(alignment: .center, spacing: 12) {
+                    // 图标：放入柔和容器里，弱化边缘对比
+                    ZStack {
+                        Circle()
+                            .fill(.white.opacity(0.14))
+                        Image(systemName: model.iconName)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.95))
                     }
-                    .id(reminderListState.id)
-            }
-            .contentShape(.rect)
+                    .frame(width: 36, height: 36)
+
+                    // 文案：左对齐，小标题 + 大数字，层级清晰
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(model.title)
+                            .font(.subheadline)  // 不再全部使用粗体
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white.opacity(0.9))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+
+                        Text("\(model.count)")
+                            .font(.title3)  // 让数值成为视觉锚点
+                            .monospacedDigit()
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white)  // 相比标题稍更亮
+                            .contentTransition(.numericText())
+                    }
+                }
+            )
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
         }
         .buttonStyle(.plain)
     }
 }
-
