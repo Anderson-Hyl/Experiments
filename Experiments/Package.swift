@@ -30,8 +30,6 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(path: "../Base"),
-        .package(path: "../BaseModel"),
         .package(url: "https://github.com/pointfreeco/sharing-grdb.git", from: "0.5.0"),
         .package(url: "https://github.com/Anderson-Hyl/HeatMap.git", from: "1.0.0"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.17.1")
@@ -43,8 +41,6 @@ let package = Package(
             name: "ChartsHub",
             dependencies: [
                 "Utils",
-                .product(name: "BaseModel", package: "BaseModel"),
-                .product(name: "Base", package: "Base"),
             ],
         ),
         .target(
@@ -56,8 +52,6 @@ let package = Package(
         .target(
             name: "Utils",
             dependencies: [
-                .product(name: "BaseModel", package: "BaseModel"),
-                .product(name: "Base", package: "Base"),
             ],
         ),
         .target(

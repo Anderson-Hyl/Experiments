@@ -1,4 +1,3 @@
-import Base
 import Foundation
 
 public extension TimeInterval {

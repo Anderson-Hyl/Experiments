@@ -2,12 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:Base">
-   </FileRef>
-   <FileRef
-      location = "group:BaseModel">
-   </FileRef>
-   <FileRef
       location = "group:Experiments">
    </FileRef>
    <FileRef
