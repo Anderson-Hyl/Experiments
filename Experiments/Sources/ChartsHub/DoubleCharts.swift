@@ -47,7 +47,6 @@ struct DoubleCharts: View {
         .chartYAxis {
             AxisMarks(position: .trailing) {
                 AxisGridLine()
-                //                AxisValueLabel(format: .number.precision(.fractionLength(0)))
             }
         }
     }

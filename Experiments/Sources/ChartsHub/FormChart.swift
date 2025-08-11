@@ -34,7 +34,7 @@ struct FormChartView: View {
                             x: .value("Date", point.date),
                             y: .value("Value", point.value)
                         )
-                .foregroundStyle(.black)
+                .foregroundStyle(.primary)
                 .interpolationMethod(.monotone)
             }
         }

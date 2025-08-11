@@ -1,16 +1,22 @@
 import SwiftUI
 import SQLHub
+import ChartsHub
 import ComposableArchitecture
 
 struct ContentView: View {
     var body: some View {
         Form {
             NavigationLink {
+                ChartsHubView()
+            } label: {
+                Text("Charts Experiment")
+            }
+            
+            NavigationLink {
                 FactsView()
             } label: {
                 Text("Facts Experiment")
             }
-            
             
             NavigationLink {
                 RemindersListView(

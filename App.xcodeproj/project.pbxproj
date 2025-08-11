@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		712743C82E44A544001393C3 /* SQLHub in Frameworks */ = {isa = PBXBuildFile; productRef = 712743C72E44A544001393C3 /* SQLHub */; };
+		719A3EF02E499F88008E8198 /* ChartsHub in Frameworks */ = {isa = PBXBuildFile; productRef = 719A3EEF2E499F88008E8198 /* ChartsHub */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				712743C82E44A544001393C3 /* SQLHub in Frameworks */,
+				719A3EF02E499F88008E8198 /* ChartsHub in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,6 +94,7 @@
 			name = App;
 			packageProductDependencies = (
 				712743C72E44A544001393C3 /* SQLHub */,
+				719A3EEF2E499F88008E8198 /* ChartsHub */,
 			);
 			productName = Experiments;
 			productReference = 712743A02E44916F001393C3 /* App.app */;
@@ -397,6 +400,10 @@
 		712743C72E44A544001393C3 /* SQLHub */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SQLHub;
+		};
+		719A3EEF2E499F88008E8198 /* ChartsHub */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ChartsHub;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
