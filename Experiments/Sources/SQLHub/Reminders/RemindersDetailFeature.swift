@@ -45,9 +45,30 @@ public struct RemindersDetailReducer {
     @ObservableState
     public struct State: Equatable {
         let detailType: DetailType
+        @FetchAll var reminderRows: [Row] = []
+        @Shared var showCompleted: Bool
         public init(detailType: DetailType) {
             self.detailType = detailType
+            _showCompleted = Shared(
+                wrappedValue: detailType == .completed,
+                .appStorage("show_completed_list_\(detailType.id)")
+            )
         }
+        
+        @Selection
+        public struct Row: Identifiable, Equatable, Sendable {
+            public var id: Reminder.ID { reminder.id }
+            let reminder: Reminder
+            let remindersList: RemindersList
+            let isPastDue: Bool
+            let notes: String
+            @Column(as: [String].JSONRepresentation.self)
+            let tags: [String]
+        }
+        
+//        private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
+//            Row.Columns(
+//        }
     }
     
     @CasePathable
@@ -62,7 +83,7 @@ public struct RemindersDetailReducer {
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .view:
+            case .view(.onTask):
                 return .none
             }
         }
@@ -71,14 +92,27 @@ public struct RemindersDetailReducer {
 
 @ViewAction(for: RemindersDetailReducer.self)
 public struct RemindersDetailView: View {
-    public var store: StoreOf<RemindersDetailReducer>
+    @Bindable public var store: StoreOf<RemindersDetailReducer>
     @Environment(\.dismiss) var dismiss
     public init(store: StoreOf<RemindersDetailReducer>) {
         self.store = store
     }
     public var body: some View {
-        VStack {
-            
+        List {
+            ForEach(store.reminderRows) { row in
+                ReminderRow(
+                    color: store.detailType.color,
+                    isPastDue: row.isPastDue,
+                    notes: row.notes,
+                    reminder: row.reminder,
+                    remindersList: row.remindersList,
+                    showCompleted: true,
+                    tags: row.tags
+                )
+            }
+        }
+        .task {
+            await send(.onTask).finish()
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -118,5 +152,19 @@ public struct RemindersDetailView: View {
             }
         }
         .navigationBarBackButtonHidden()
+    }
+}
+
+extension RemindersDetailReducer.DetailType {
+    public var id: String {
+        switch self {
+        case .all: "all"
+        case .completed: "completed"
+        case .flagged: "flagged"
+        case .remindersList(let remindersList): "list_\(remindersList.id)"
+        case .scheduled: "scheduled"
+        case .tags: "tags"
+        case .today: "today"
+        }
     }
 }
