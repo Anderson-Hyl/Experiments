@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import IssueReporting
+import SharingGRDB
 
 public struct ReminderRow: View {
     let color: Color
@@ -11,6 +13,8 @@ public struct ReminderRow: View {
     let tags: [String]
     
     @State var isCompleted: Bool
+    
+    @Dependency(\.defaultDatabase) var database
     
     public init(
         color: Color,
@@ -35,7 +39,7 @@ public struct ReminderRow: View {
         HStack {
             HStack(alignment: .firstTextBaseline) {
                 Button {
-                    
+                    completeButtonTapped()
                 } label: {
                     Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
                         .foregroundStyle(isCompleted ? Color.gray : remindersList.color)
@@ -81,6 +85,22 @@ public struct ReminderRow: View {
                 .foregroundStyle(isCompleted ? .gray : .primary)
         }
         .font(.title3)
+    }
+    
+    private func completeButtonTapped() {
+        if showCompleted {
+            withErrorReporting {
+                try database.write { db in
+                    isCompleted = try Reminder
+                        .find(reminder.id)
+                        .update { $0.isCompleted.toggle() }
+                        .returning(\.isCompleted)
+                        .fetchOne(db) ?? isCompleted
+                }
+            }
+        } else {
+            isCompleted.toggle()
+        }
     }
     
     private var dueText: Text {

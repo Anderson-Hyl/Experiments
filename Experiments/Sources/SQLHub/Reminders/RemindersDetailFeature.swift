@@ -42,6 +42,24 @@ public struct RemindersDetailReducer {
         }
     }
     
+    @CasePathable
+    @dynamicMemberLookup
+    public enum Ordering: String, CaseIterable, Sendable {
+        case dueDate = "Due Date"
+        case manual = "Manual"
+        case priority = "Priority"
+        case title = "Title"
+        
+        var icon: Image {
+            switch self {
+            case .dueDate: Image(systemName: "calendar")
+            case .manual: Image(systemName: "hand.draw")
+            case .priority: Image(systemName: "chart.bar.fill")
+            case .title: Image(systemName: "textformat.characters")
+            }
+        }
+    }
+    
     @Dependency(\.date.now) var now
     
     @ObservableState
@@ -49,8 +67,13 @@ public struct RemindersDetailReducer {
         let detailType: DetailType
         @FetchAll var reminderRows: [Row]
         @Shared var showCompleted: Bool
+        @Shared var ordering: Ordering
         public init(detailType: DetailType) {
             self.detailType = detailType
+            _ordering = Shared(
+                wrappedValue: .dueDate,
+                .appStorage("ordering_list_\(detailType.id)")
+            )
             _showCompleted = Shared(
                 wrappedValue: detailType == .completed,
                 .appStorage("show_completed_list_\(detailType.id)")
@@ -69,8 +92,22 @@ public struct RemindersDetailReducer {
             let tags: [String]
         }
         
-        private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
+        fileprivate var remindersQuery: some StructuredQueriesCore.Statement<Row> {
             Reminder
+                .where {
+                    if !showCompleted {
+                        !$0.isCompleted
+                    }
+                }
+                .order { $0.isCompleted }
+                .order {
+                    switch ordering {
+                    case .dueDate: $0.dueDate.asc(nulls: .last)
+                    case .manual: $0.position
+                    case .priority: ($0.priority.desc(), $0.isFlagged.desc())
+                    case .title: $0.title
+                    }
+                }
                 .withTags
                 .where { reminder, _, tag in
                     switch detailType {
@@ -102,6 +139,8 @@ public struct RemindersDetailReducer {
         
         public enum View {
             case onTask
+            case onTappedShowCompletedButton
+            case onTappedOrderingButton(Ordering)
         }
     }
     
@@ -110,7 +149,23 @@ public struct RemindersDetailReducer {
             switch action {
             case .view(.onTask):
                 return .none
+            case .view(.onTappedShowCompletedButton):
+                state.$showCompleted.withLock {
+                    $0.toggle()
+                }
+                return updateQuery(state: &state)
+            case let .view(.onTappedOrderingButton(ordering)):
+                state.$ordering.withLock {
+                    $0 = ordering
+                }
+                return updateQuery(state: &state)
             }
+        }
+    }
+    
+    private func updateQuery(state: inout State) -> Effect<Action> {
+        .run { [rows = state.$reminderRows, remindersQuery = state.remindersQuery] _ in
+            try await rows.load(remindersQuery, animation: .default)
         }
     }
 }
@@ -155,6 +210,36 @@ public struct RemindersDetailView: View {
                     Image(systemName: "chevron.left") // 只显示箭头
                         .font(.headline)
                         .foregroundStyle(store.detailType.color.gradient)
+                }
+            }
+            
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Group {
+                        Menu {
+                            ForEach(RemindersDetailReducer.Ordering.allCases, id: \.self) { ordering in
+                                Button {
+                                    send(.onTappedOrderingButton(ordering))
+                                } label: {
+                                    Text(ordering.rawValue)
+                                    ordering.icon
+                                }
+                            }
+                        } label: {
+                            Text("Sort By")
+                            Text(store.ordering.rawValue)
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        Button {
+                            send(.onTappedShowCompletedButton)
+                        } label: {
+                            Text(store.showCompleted ? "Hide Completed" : "Show Completed")
+                            Image(systemName: store.showCompleted ? "eye.slash.fill" : "eye")
+                        }
+                    }
+                    .tint(store.detailType.color)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
             
