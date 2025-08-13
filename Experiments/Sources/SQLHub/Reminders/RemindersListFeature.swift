@@ -81,7 +81,17 @@ public struct RemindersListReducer {
                     title: "Scheduled",
                 ),
                 RemindersListHeatMapCell.Model(
-                    colors: [0x2FB59B, 0x3DAE83, 0x6FBF5F, 0x5AA9C9, 0x5E79E6, 0xC56DA4, 0xE66D74].map { Color(hex: $0) }, // expanded, bridge-stop palette for gradient harmony
+                    colors: [
+                        0x2FB59B,
+                        0x3DAE83,
+                        0x57B88C,
+                        0x5AA9C9,
+                        0x6C97D0,
+                        0xA97CCE,
+                        0xD682A7
+                    ].map { Color(hex: $0)
+                    },
+                    // expanded, bridge-stop palette for gradient harmony
                     count: stats.allCount,
                     iconName: "square.grid.3x3.fill",
                     title: "All",
@@ -340,14 +350,23 @@ public struct RemindersListHeatMapCell: View {
         Button {
             onTapHeatMapCell()
         } label: {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(
+            ZStack {
                 LinearGradient(
                     gradient: Gradient(colors: model.colors),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-            )
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color.white.opacity(0.15),
+                        Color.clear
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 400
+                )
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 HStack(alignment: .center, spacing: 12) {
                     // 图标：放入柔和容器里，弱化边缘对比
