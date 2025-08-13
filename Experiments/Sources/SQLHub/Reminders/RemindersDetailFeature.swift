@@ -42,10 +42,12 @@ public struct RemindersDetailReducer {
         }
     }
     
+    @Dependency(\.date.now) var now
+    
     @ObservableState
     public struct State: Equatable {
         let detailType: DetailType
-        @FetchAll var reminderRows: [Row] = []
+        @FetchAll var reminderRows: [Row]
         @Shared var showCompleted: Bool
         public init(detailType: DetailType) {
             self.detailType = detailType
@@ -53,6 +55,7 @@ public struct RemindersDetailReducer {
                 wrappedValue: detailType == .completed,
                 .appStorage("show_completed_list_\(detailType.id)")
             )
+            _reminderRows = FetchAll(remindersQuery)
         }
         
         @Selection
@@ -66,9 +69,31 @@ public struct RemindersDetailReducer {
             let tags: [String]
         }
         
-//        private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
-//            Row.Columns(
-//        }
+        private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
+            Reminder
+                .withTags
+                .where { reminder, _, tag in
+                    switch detailType {
+                    case .all: true
+                    case .completed: reminder.isCompleted
+                    case .flagged: reminder.isFlagged
+                    case .remindersList(let remindersList): reminder.remindersListID.eq(remindersList.id)
+                    case .scheduled: reminder.isScheduled
+                    case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
+                    case .today: reminder.isToday
+                    }
+                }
+                .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
+                .select {
+                    Row.Columns(
+                        reminder: $0,
+                        remindersList: $3,
+                        isPastDue: $0.isPastDue,
+                        notes: $0.notes,
+                        tags: #sql("\($2.jsonNames)")
+                    )
+                }
+        }
     }
     
     @CasePathable
@@ -111,6 +136,7 @@ public struct RemindersDetailView: View {
                 )
             }
         }
+        .listStyle(.plain)
         .task {
             await send(.onTask).finish()
         }

@@ -51,7 +51,17 @@ public struct Reminder: Identifiable, Equatable, Sendable {
     }
 }
 
+extension Reminder {
+    static let withTags = group(by: \.id)
+        .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
+        .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
+}
+
 extension Reminder.TableColumns {
+    var isPastDue: some QueryExpression<Bool> {
+      @Dependency(\.date.now) var now
+      return !isCompleted && #sql("coalesce(date(\(dueDate)) < date(\(now)), 0)")
+    }
     var isScheduled: some QueryExpression<Bool> {
         !isCompleted && dueDate.isNot(nil)
     }
@@ -83,6 +93,11 @@ public struct Tag: Identifiable, Equatable, Hashable, Sendable {
     }
 }
 
+extension Tag.TableColumns {
+  var jsonNames: some QueryExpression<[String].JSONRepresentation> {
+    self.title.jsonGroupArray(filter: self.title.isNot(nil))
+  }
+}
 
 @Table
 public struct ReminderTag: Identifiable, Sendable {
