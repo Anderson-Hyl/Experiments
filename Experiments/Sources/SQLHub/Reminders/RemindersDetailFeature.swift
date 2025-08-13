@@ -62,12 +62,19 @@ public struct RemindersDetailReducer {
     
     @Dependency(\.date.now) var now
     
+    @Reducer(state: .equatable)
+    public enum Destination {
+        case reminderForm(ReminderFormReducer)
+    }
+    
     @ObservableState
     public struct State: Equatable {
         let detailType: DetailType
         @FetchAll var reminderRows: [Row]
         @Shared var showCompleted: Bool
         @Shared var ordering: Ordering
+        @Presents var destination: Destination.State?
+        @Presents var alert: AlertState<Action.Alert>?
         public init(detailType: DetailType) {
             self.detailType = detailType
             _ordering = Shared(
@@ -135,18 +142,52 @@ public struct RemindersDetailReducer {
     
     @CasePathable
     public enum Action: ViewAction {
+        case alert(PresentationAction<Alert>)
+        case destination(PresentationAction<Destination.Action>)
+        case dismissAlert(fetchReminders: Bool)
         case view(View)
         
         public enum View {
             case onTask
             case onTappedShowCompletedButton
             case onTappedOrderingButton(Ordering)
+            case onTappedNewReminderButton
+            case onTappedEditReminderButton(Reminder)
+            case onTappedDeleteReminderButton(Reminder)
+            case onTappedToggleReminderFlagButton(Reminder)
+        }
+        
+        public enum Alert: Equatable {
+            case confirmDelete(Reminder)
+            case cancelDelete
         }
     }
     
     public var body: some ReducerOf<Self> {
-        Reduce { state, action in
+        Reduce {
+            state,
+            action in
             switch action {
+            case let .alert(.presented(.confirmDelete(reminder))):
+                return .run { [reminder] send in
+                    @Dependency(\.defaultDatabase) var database
+                    try await database.write { db in
+                        try Reminder.delete(reminder).execute(db)
+                    }
+                    await send(.dismissAlert(fetchReminders: true))
+                }
+            case .alert(.presented(.cancelDelete)):
+                return .send(.dismissAlert(fetchReminders: false))
+            case .alert:
+                return .none
+            case .destination:
+                return .none
+            case let .dismissAlert(fetchReminders):
+                state.alert = nil
+                guard fetchReminders else {
+                    return .none
+                }
+                return updateQuery(state: &state)
             case .view(.onTask):
                 return .none
             case .view(.onTappedShowCompletedButton):
@@ -159,8 +200,59 @@ public struct RemindersDetailReducer {
                     $0 = ordering
                 }
                 return updateQuery(state: &state)
+            case .view(.onTappedNewReminderButton):
+                guard case let .remindersList(remindersList) = state.detailType else {
+                    return .none
+                }
+                state.destination = .reminderForm(
+                    ReminderFormReducer.State(
+                        reminder: Reminder.Draft(remindersListID: remindersList.id),
+                        remindersList: remindersList,
+                    )
+                )
+                return .none
+            case let .view(.onTappedEditReminderButton(reminder)):
+                guard let remindersList = state.reminderRows.first(where: { $0.id == reminder.id })?.remindersList else {
+                    return .none
+                }
+                state.destination = .reminderForm(
+                    ReminderFormReducer.State(
+                        reminder: Reminder.Draft(reminder),
+                        remindersList: remindersList,
+                    )
+                )
+                return .none
+                
+            case let .view(.onTappedDeleteReminderButton(reminder)):
+                state.alert = AlertState(
+                    title: {
+                        TextState("Delete this reminder?")
+                    },
+                    actions: {
+                        ButtonState(role: .cancel, action: .cancelDelete) {
+                            TextState("Cancel")
+                        }
+                        ButtonState(role: .destructive, action: .confirmDelete(reminder)) {
+                            TextState("Delete")
+                        }
+                    }
+                )
+                return .none
+            case let .view(.onTappedToggleReminderFlagButton(reminder)):
+                let toggleFlagAction: Effect<Action> = .run { [reminder] _ in
+                    @Dependency(\.defaultDatabase) var database
+                    try database.write { db in
+                        try Reminder
+                            .find(reminder.id)
+                            .update { $0.isFlagged.toggle() }
+                            .execute(db)
+                    }
+                }
+                return toggleFlagAction
             }
         }
+        .ifLet(\.$destination, action: \.destination)
+        .ifLet(\.$alert, action: \.alert)
     }
     
     private func updateQuery(state: inout State) -> Effect<Action> {
@@ -187,7 +279,16 @@ public struct RemindersDetailView: View {
                     reminder: row.reminder,
                     remindersList: row.remindersList,
                     showCompleted: true,
-                    tags: row.tags
+                    tags: row.tags,
+                    editAction: {
+                        send(.onTappedEditReminderButton(row.reminder))
+                    },
+                    deleteAction: {
+                        send(.onTappedDeleteReminderButton(row.reminder))
+                    },
+                    toggleFlagAction: {
+                        send(.onTappedToggleReminderFlagButton(row.reminder))
+                    },
                 )
             }
         }
@@ -207,7 +308,7 @@ public struct RemindersDetailView: View {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: "chevron.left") // 只显示箭头
+                    Image(systemName: "chevron.left")
                         .font(.headline)
                         .foregroundStyle(store.detailType.color.gradient)
                 }
@@ -247,7 +348,7 @@ public struct RemindersDetailView: View {
                 ToolbarItem(placement: .bottomBar) {
                     HStack {
                       Button {
-                        
+                          send(.onTappedNewReminderButton)
                       } label: {
                         HStack {
                           Image(systemName: "plus.circle.fill")
@@ -262,6 +363,17 @@ public struct RemindersDetailView: View {
                 }
             }
         }
+        .sheet(
+            item: $store.scope(
+                state: \.destination?.reminderForm,
+                action: \.destination.reminderForm
+            )
+        ) { reminderFormStore in
+            NavigationStack {
+                ReminderForm(store: reminderFormStore)
+            }
+        }
+        .alert($store.scope(state: \.alert, action: \.alert))
         .navigationBarBackButtonHidden()
     }
 }

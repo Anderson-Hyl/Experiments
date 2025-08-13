@@ -11,6 +11,9 @@ public struct ReminderRow: View {
     let remindersList: RemindersList
     let showCompleted: Bool
     let tags: [String]
+    let editAction: () -> Void
+    let deleteAction: () -> Void
+    let toggleFlagAction: () -> Void
     
     @State var isCompleted: Bool
     
@@ -23,7 +26,10 @@ public struct ReminderRow: View {
         reminder: Reminder,
         remindersList: RemindersList,
         showCompleted: Bool,
-        tags: [String]
+        tags: [String],
+        editAction: @escaping () -> Void,
+        deleteAction: @escaping () -> Void,
+        toggleFlagAction: @escaping () -> Void,
     ) {
         self.color = color
         self.isPastDue = isPastDue
@@ -33,6 +39,9 @@ public struct ReminderRow: View {
         self.showCompleted = showCompleted
         self.tags = tags
         self.isCompleted = reminder.isCompleted
+        self.editAction = editAction
+        self.deleteAction = deleteAction
+        self.toggleFlagAction = toggleFlagAction
     }
     
     public var body: some View {
@@ -65,12 +74,25 @@ public struct ReminderRow: View {
                             .foregroundStyle(.blue.gradient)
                     }
                     Button {
-                        
+                        editAction()
                     } label: {
                         Image(systemName: "info.circle")
                     }
                     .tint(Color.blue.gradient)
                 }
+            }
+        }
+        .buttonStyle(.borderless)
+        .swipeActions {
+            Button("Delete", role: .destructive) {
+                deleteAction()
+            }
+            Button(reminder.isFlagged ? "Unflagg" : "Flag") {
+                toggleFlagAction()
+            }
+            .tint(.orange)
+            Button("Details") {
+                editAction()
             }
         }
     }
@@ -120,54 +142,3 @@ public struct ReminderRow: View {
     }
 }
 
-
-#Preview {
-    VStack {
-        ReminderRow(
-            color: .blue,
-            isPastDue: true,
-            notes: "",
-            reminder: Reminder(
-                id: UUID(0),
-                dueDate: Date(),
-                isFlagged: true,
-                notes: "Ask about diet",
-                priority: .high,
-                remindersListID: UUID(10),
-                title: "Doctor appointment"
-            ),
-            remindersList: RemindersList(
-                id: UUID(10),
-                color: .blue,
-                position: 0,
-                title: "Personal"
-            ),
-            showCompleted: false,
-            tags: ["Good", "Milk"]
-        )
-        
-        ReminderRow(
-            color: .orange,
-            isPastDue: false,
-            notes: "",
-            reminder: Reminder(
-                id: UUID(1),
-                dueDate: Date(),
-                isCompleted: true,
-                isFlagged: true,
-                notes: "Ask about diet",
-                priority: .high,
-                remindersListID: UUID(10),
-                title: "Doctor appointment"
-            ),
-            remindersList: RemindersList(
-                id: UUID(10),
-                color: .blue,
-                position: 0,
-                title: "Personal"
-            ),
-            showCompleted: true,
-            tags: ["Good", "Milk"]
-        )
-    }
-}
