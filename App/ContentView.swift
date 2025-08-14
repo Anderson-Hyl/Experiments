@@ -28,6 +28,17 @@ struct ContentView: View {
             } label: {
                 Text("Reminders Experiment")
             }
+            
+            NavigationLink {
+                SpacesListView(
+                    store: Store(
+                        initialState: SpacesListReducer.State(),
+                        reducer: { SpacesListReducer() }
+                    )
+                )
+            } label: {
+                Text("Chats Experiment")
+            }
         }
         .foregroundStyle(.primary)
         .navigationTitle("Experiments")

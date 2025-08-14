@@ -46,71 +46,375 @@ public func applicationDB() throws -> any DatabaseWriter {
         )
         .execute(db)
     }
-    migrator.registerMigration("Create 'Reminders' tables") { db in
-        let defaultListColor = Color.HexRepresentation(queryOutput: RemindersList.defaultColor).hexValue
-        try #sql(
-            """
-            CREATE TABLE "remindersLists" (
-                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "color" INTEGER NOT NULL DEFAULT \(raw: defaultListColor ?? 0),
-                "position" INTEGER NOT NULL DEFAULT 0,
-                "title" TEXT NOT NULL
-            ) STRICT
-            """
-        )
-        .execute(db)
-        
-        try #sql(
-            """
-            CREATE TABLE "reminders" (
-                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "dueDate" TEXT,
-                "isCompleted" INTEGER NOT NULL DEFAULT 0,
-                "isFlagged" INTEGER NOT NULL DEFAULT 0,
-                "notes" TEXT,
-                "position" INTEGER NOT NULL DEFAULT 0,
-                "priority" INTEGER,
-                "remindersListID" TEXT NOT NULL,
-                "title" TEXT NOT NULL,
-            
-                FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
-            ) STRICT
-            """
-        )
-        .execute(db)
-        
-        try #sql(
-            """
-            CREATE TABLE "tags" (
-                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "title" TEXT NOT NULL COLLATE NOCASE
-            ) STRICT
-            """
-        )
-        .execute(db)
-        
-        try #sql(
-            """
-            CREATE TABLE "reminderTags" (
-                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "reminderID" TEXT NOT NULL,
-                "tagID" TEXT NOT NULL,
-            
-                FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
-                FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
-            ) STRICT
-            """
-        )
-        .execute(db)
-    }
-    
+    migrator.registerReminderTables()
+    migrator.registerChatTables()
     try migrator.migrate(database)
     return database
+}
+
+extension DatabaseMigrator {
+    
+    mutating func registerChatTables() {
+        registerMigration("Create 'Chat' tables") { db in
+            try #sql(
+                """
+                CREATE TABLE 'users' (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "displayName" TEXT NOT NULL,
+                    "avatarURL" TEXT,
+                    "isBot" INTEGER NOT NULL DEFAULT 0,
+                    "createdAt" TEXT NOT NULL,
+                    "updatedAt" TEXT NOT NULL
+                ) STRICT
+                """
+            )
+            .execute(db)
+            
+            try #sql(
+                """
+                CREATE TABLE 'spaces' (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "kind" INTEGER NOT NULL DEFAULT 0,
+                    "title" TEXT,
+                    "createdAt" TEXT NOT NULL,
+                    "updatedAt" TEXT NOT NULL,
+                    "archivedAt" TEXT,
+                    "lastMessageAt" TEXT
+                ) STRICT
+                """
+            )
+            .execute(db)
+            
+            try #sql(
+                """
+                CREATE TABLE 'spaceParticipants' (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "spaceID" TEXT NOT NULL,
+                    "userID" TEXT NOT NULL,
+                    "role" INTEGER NOT NULL DEFAULT 0,
+                    "isMuted" INTEGER NOT NULL DEFAULT 0,
+                    "joinedAt" TEXT NOT NULL,
+                    "leftAt" TEXT,
+                
+                    FOREIGN KEY("spaceID") REFERENCES "spaces"("id") ON DELETE CASCADE,
+                    FOREIGN KEY("userID") REFERENCES "users"("id") ON DELETE CASCADE
+                ) STRICT
+                """
+            )
+            .execute(db)
+            
+            try #sql(
+                """
+                CREATE TABLE 'messages' (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "spaceID" TEXT NOT NULL,
+                    "authorID" TEXT,
+                    "role" INTEGER NOT NULL DEFAULT 0,
+                    "type" INTEGER NOT NULL DEFAULT 0,
+                    "state" INTEGER NOT NULL DEFAULT 0,
+                    "text" TEXT,
+                    "contentJSON" BLOB,
+                    "replyToMessageID" TEXT,
+                    "threadRootID" TEXT,
+                    "createdAt" TEXT NOT NULL,
+                    "sentAt" TEXT,
+                    "editedAt" TEXT,
+                    "deletedAt" TEXT,
+                    "spaceSeq" INTEGER NOT NULL DEFAULT 0,
+                
+                    FOREIGN KEY("spaceID") REFERENCES "spaces"("id") ON DELETE CASCADE,
+                    FOREIGN KEY("authorID") REFERENCES "users"("id") ON DELETE SET NULL,
+                    FOREIGN KEY("replyToMessageID") REFERENCES "messages"("id") ON DELETE SET NULL,
+                    FOREIGN KEY("threadRootID") REFERENCES "messages"("id") ON DELETE SET NULL
+                ) STRICT
+                """
+            )
+            .execute(db)
+            
+            #if DEBUG
+            try db.seedChatSampleData()
+            #endif
+        }
+    }
+    
+    mutating func registerReminderTables() {
+        registerMigration("Create 'Reminders' tables") { db in
+            let defaultListColor = Color.HexRepresentation(queryOutput: RemindersList.defaultColor).hexValue
+            try #sql(
+                """
+                CREATE TABLE "remindersLists" (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "color" INTEGER NOT NULL DEFAULT \(raw: defaultListColor ?? 0),
+                    "position" INTEGER NOT NULL DEFAULT 0,
+                    "title" TEXT NOT NULL
+                ) STRICT
+                """
+            )
+            .execute(db)
+            
+            try #sql(
+                """
+                CREATE TABLE "reminders" (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "dueDate" TEXT,
+                    "isCompleted" INTEGER NOT NULL DEFAULT 0,
+                    "isFlagged" INTEGER NOT NULL DEFAULT 0,
+                    "notes" TEXT,
+                    "position" INTEGER NOT NULL DEFAULT 0,
+                    "priority" INTEGER,
+                    "remindersListID" TEXT NOT NULL,
+                    "title" TEXT NOT NULL,
+                
+                    FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
+                ) STRICT
+                """
+            )
+            .execute(db)
+            
+            try #sql(
+                """
+                CREATE TABLE "tags" (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "title" TEXT NOT NULL COLLATE NOCASE
+                ) STRICT
+                """
+            )
+            .execute(db)
+            
+            try #sql(
+                """
+                CREATE TABLE "reminderTags" (
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "reminderID" TEXT NOT NULL,
+                    "tagID" TEXT NOT NULL,
+                
+                    FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
+                    FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
+                ) STRICT
+                """
+            )
+            .execute(db)
+        }
+    }
 }
 
 
 #if DEBUG
   extension Database {
+      func seedChatSampleData() throws {
+        let now = Date()
+        // Users
+        let userIDs = [
+          UUID(), // alice
+          UUID(), // bob
+          UUID(), // carol
+          UUID(), // bot/system
+        ]
+        // Spaces
+        let spaceIDs = [
+          UUID(), // direct: alice ↔︎ bob
+          UUID(), // group: team
+          UUID(), // system: announcements
+        ]
+
+        try seed {
+          // --- Users ---
+          User(
+            id: userIDs[0], displayName: "Alice", avatarURL: nil,
+            isBot: false, createdAt: now, updatedAt: now
+          )
+          User(
+            id: userIDs[1], displayName: "Bob", avatarURL: nil,
+            isBot: false, createdAt: now, updatedAt: now
+          )
+          User(
+            id: userIDs[2], displayName: "Carol", avatarURL: nil,
+            isBot: false, createdAt: now, updatedAt: now
+          )
+          User(
+            id: userIDs[3], displayName: "System Bot", avatarURL: nil,
+            isBot: true, createdAt: now, updatedAt: now
+          )
+
+          // --- Spaces ---
+          Space(
+            id: spaceIDs[0], kind: .direct, title: nil,
+            createdAt: now, updatedAt: now, archivedAt: nil, lastMessageAt: nil
+          )
+          Space(
+            id: spaceIDs[1], kind: .group, title: "Team Chat",
+            createdAt: now, updatedAt: now, archivedAt: nil, lastMessageAt: nil
+          )
+          Space(
+            id: spaceIDs[2], kind: .system, title: "Announcements",
+            createdAt: now, updatedAt: now, archivedAt: nil, lastMessageAt: nil
+          )
+
+          // --- Space Participants ---
+          // direct: alice & bob
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[0], userID: userIDs[0],
+            role: .member, isMuted: false, joinedAt: now, leftAt: nil
+          )
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[0], userID: userIDs[1],
+            role: .member, isMuted: false, joinedAt: now, leftAt: nil
+          )
+
+          // group: alice, bob, carol
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[1], userID: userIDs[0],
+            role: .owner, isMuted: false, joinedAt: now, leftAt: nil
+          )
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[1], userID: userIDs[1],
+            role: .admin, isMuted: false, joinedAt: now, leftAt: nil
+          )
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[1], userID: userIDs[2],
+            role: .member, isMuted: false, joinedAt: now, leftAt: nil
+          )
+
+          // system: 所有人 + bot（是否加成员关系看你的业务，这里示例加上）
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[3],
+            role: .admin, isMuted: false, joinedAt: now, leftAt: nil
+          )
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[0],
+            role: .member, isMuted: true, joinedAt: now, leftAt: nil
+          )
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[1],
+            role: .member, isMuted: false, joinedAt: now, leftAt: nil
+          )
+          SpaceParticipant(
+            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[2],
+            role: .member, isMuted: false, joinedAt: now, leftAt: nil
+          )
+
+          // --- Messages (spaceSeq 单调递增 per space) ---
+
+          // Direct (Alice ↔︎ Bob)
+          let d0 = now.addingTimeInterval(-3600)
+          let m00 = UUID(), m01 = UUID(), m02 = UUID()
+          Message(
+            id: m00,
+            spaceID: spaceIDs[0],
+            authorID: userIDs[0],
+            role: .user, type: .text, state: .sent,
+            spaceSeq: 1,
+            text: "Hi Bob! Have you tried the new build?",
+            contentJSON: nil, replyToMessageID: nil, threadRootID: nil,
+            createdAt: d0, sentAt: d0, editedAt: nil, deletedAt: nil
+          )
+          Message(
+            id: m01,
+            spaceID: spaceIDs[0],
+            authorID: userIDs[1],
+            role: .user, type: .text, state: .sent,
+            spaceSeq: 2,
+            text: "Hey Alice, yes! It looks good so far 👍",
+            contentJSON: nil, replyToMessageID: m00, threadRootID: nil,
+            createdAt: d0.addingTimeInterval(60), sentAt: d0.addingTimeInterval(60),
+            editedAt: nil, deletedAt: nil
+          )
+          Message(
+            id: m02,
+            spaceID: spaceIDs[0],
+            authorID: userIDs[0],
+            role: .user, type: .media, state: .sent,
+            spaceSeq: 3,
+            text: "Here is the screenshot.",
+            contentJSON: nil, // 未来可放 JSON 块，例如附件元数据
+            replyToMessageID: m01, threadRootID: nil,
+            createdAt: d0.addingTimeInterval(120), sentAt: d0.addingTimeInterval(120),
+            editedAt: nil, deletedAt: nil
+          )
+
+          // Group (Team Chat) with a thread
+          let g0 = now.addingTimeInterval(-1800)
+          let gm0 = UUID(), gm1 = UUID(), gm2 = UUID(), gm3 = UUID()
+          // 根消息（线程根=自己）
+          Message(
+            id: gm0,
+            spaceID: spaceIDs[1],
+            authorID: userIDs[2],
+            role: .user, type: .text, state: .sent,
+            spaceSeq: 1,
+            text: "Standup in 10 minutes. Any blockers?",
+            contentJSON: nil,
+            replyToMessageID: nil, threadRootID: gm0,
+            createdAt: g0, sentAt: g0, editedAt: nil, deletedAt: nil
+          )
+          // 线程回复 1
+          Message(
+            id: gm1,
+            spaceID: spaceIDs[1],
+            authorID: userIDs[0],
+            role: .user, type: .text, state: .sent,
+            spaceSeq: 2,
+            text: "All good here.",
+            contentJSON: nil,
+            replyToMessageID: gm0, threadRootID: gm0,
+            createdAt: g0.addingTimeInterval(45), sentAt: g0.addingTimeInterval(45),
+            editedAt: nil, deletedAt: nil
+          )
+          // 线程回复 2（assistant 示例）
+          Message(
+            id: gm2,
+            spaceID: spaceIDs[1],
+            authorID: userIDs[3], // bot
+            role: .assistant, type: .text, state: .sent,
+            spaceSeq: 3,
+            text: "Reminder: sprint review tomorrow at 2pm.",
+            contentJSON: nil,
+            replyToMessageID: gm0, threadRootID: gm0,
+            createdAt: g0.addingTimeInterval(60), sentAt: g0.addingTimeInterval(60),
+            editedAt: nil, deletedAt: nil
+          )
+          // 非线程普通消息（toolCall 示例）
+          Message(
+            id: gm3,
+            spaceID: spaceIDs[1],
+            authorID: userIDs[1],
+            role: .user, type: .toolCall, state: .sent,
+            spaceSeq: 4,
+            text: "run: summarize last standup", // 仅示意；未来可配合 ToolCall 表
+            contentJSON: nil,
+            replyToMessageID: nil, threadRootID: nil,
+            createdAt: g0.addingTimeInterval(120), sentAt: g0.addingTimeInterval(120),
+            editedAt: nil, deletedAt: nil
+          )
+
+          // System (Announcements)
+          let s0 = now.addingTimeInterval(-600)
+          let sm0 = UUID(), sm1 = UUID()
+          Message(
+            id: sm0,
+            spaceID: spaceIDs[2],
+            authorID: userIDs[3], // system bot
+            role: .system, type: .event, state: .sent,
+            spaceSeq: 1,
+            text: "Welcome to Announcements channel.",
+            contentJSON: nil,
+            replyToMessageID: nil, threadRootID: nil,
+            createdAt: s0, sentAt: s0, editedAt: nil, deletedAt: nil
+          )
+          Message(
+            id: sm1,
+            spaceID: spaceIDs[2],
+            authorID: userIDs[3],
+            role: .system, type: .text, state: .sent,
+            spaceSeq: 2,
+            text: "Downtime scheduled tonight 23:00–23:15 UTC.",
+            contentJSON: nil,
+            replyToMessageID: nil, threadRootID: nil,
+            createdAt: s0.addingTimeInterval(90), sentAt: s0.addingTimeInterval(90),
+            editedAt: nil, deletedAt: nil
+          )
+        }
+      }
     func seedSampleData() throws {
       let remindersListIDs = (0...2).map { _ in UUID() }
       let reminderIDs = (0...10).map { _ in UUID() }
