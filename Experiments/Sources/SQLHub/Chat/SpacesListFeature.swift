@@ -8,7 +8,7 @@ public struct SpacesListReducer {
     
     @Reducer(state: .equatable)
     public enum Destination {
-        case spaceDetail(MessageListReducer)
+        case spaceRoom(SpaceRoomReducer)
     }
     
     @ObservableState
@@ -40,11 +40,12 @@ public struct SpacesListReducer {
         case destination(PresentationAction<Destination.Action>)
         case spaceRows(IdentifiedActionOf<SpaceRowReducer>)
         case spaceRowsUpdated([Space])
+        case dismissSelectedSpaceID
         case view(View)
         
         public enum View {
             case onTask
-            case onTappedSpaceRow(Space.ID)
+            case onTappedSpaceRow(Space)
         }
     }
     
@@ -56,14 +57,21 @@ public struct SpacesListReducer {
             switch action {
             case .binding:
                 return .none
+            case .destination(.dismiss):
+                return .run { send in
+                    try await Task.sleep(for: .seconds(0.6))
+                    await send(.dismissSelectedSpaceID, animation: .default)
+                }
             case .destination:
+                return .none
+            case .dismissSelectedSpaceID:
+                if state.selectedSpaceID != nil {
+                    state.selectedSpaceID = nil
+                }
                 return .none
             case .spaceRows:
                 return .none
             case .view(.onTask):
-                state.spaceRows = IdentifiedArray(
-                    uniqueElements: state.spaceRowStates.map { SpaceRowReducer.State(space: $0.space) }
-                )
                 return .publisher {
                     state.$spaceRowStates
                         .publisher
@@ -75,12 +83,17 @@ public struct SpacesListReducer {
                     uniqueElements: spaces.map { SpaceRowReducer.State(space: $0) }
                 )
                 return .none
-            case let .view(.onTappedSpaceRow(spaceID)):
+            case let .view(.onTappedSpaceRow(space)):
                 
-                if state.selectedSpaceID == spaceID {
+                if state.selectedSpaceID == space.id {
                     state.selectedSpaceID = nil
                 } else {
-                    state.selectedSpaceID = spaceID
+                    state.selectedSpaceID = space.id
+                    state.destination = .spaceRoom(
+                        SpaceRoomReducer.State(
+                            space: space
+                        )
+                    )
                 }
                 return .none
             }
@@ -89,6 +102,13 @@ public struct SpacesListReducer {
             SpaceRowReducer()
         }
         .ifLet(\.$destination, action: \.destination)
+    }
+    
+    private func dismissSelectedSpaceID(state: inout State) -> Effect<Action> {
+        if state.selectedSpaceID != nil {
+            state.selectedSpaceID = nil
+        }
+        return .none
     }
 }
 
@@ -109,9 +129,11 @@ public struct SpacesListView: View {
             ) { spaceRowStore in
                 SpaceRowView(store: spaceRowStore)
                     .onTapGesture {
-                        send(.onTappedSpaceRow(spaceRowStore.id))
+                        send(.onTappedSpaceRow(spaceRowStore.space))
                     }
-                    .listRowBackground(spaceRowBackground(of: spaceRowStore.id))
+                    .listRowBackground(
+                        spaceRowBackground(of: spaceRowStore.id)
+                    )
             }
         }
         .listStyle(.plain)
@@ -120,11 +142,11 @@ public struct SpacesListView: View {
         }
         .navigationDestination(
             item: $store.scope(
-                state: \.destination?.spaceDetail,
-                action: \.destination.spaceDetail
+                state: \.destination?.spaceRoom,
+                action: \.destination.spaceRoom
             )
-        ) { spaceDetailStore in
-            MessageListView(store: spaceDetailStore)
+        ) { spaceRoomStore in
+            SpaceRoomView(store: spaceRoomStore)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -145,7 +167,7 @@ public struct SpacesListView: View {
     @ViewBuilder
     private func spaceRowBackground(of spaceID: Space.ID) -> some View {
         if store.selectedSpaceID == spaceID {
-            Color.accentColor.opacity(0.3)
+            Color.accentColor.opacity(0.1)
         } else {
             EmptyView()
         }

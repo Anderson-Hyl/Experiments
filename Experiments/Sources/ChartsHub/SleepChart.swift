@@ -62,7 +62,6 @@ struct SleepChart: View {
                 .foregroundStyle(by: .value("Value", "HeartRate"))
             }
         }
-        .chartLegend(.hidden)
         .chartForegroundStyleScale([
             "SleepDuration": Color(hexString: "#9E6CEC")!,
             "HeartRate": Color(hexString: "#303030")!

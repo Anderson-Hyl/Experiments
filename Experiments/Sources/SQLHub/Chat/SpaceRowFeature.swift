@@ -12,8 +12,30 @@ public struct SpaceRowReducer {
             space.id
         }
         var space: Space
+        @FetchOne var lastMessage: Message?
         public init(space: Space) {
             self.space = space
+            self._lastMessage = FetchOne(
+                wrappedValue: nil,
+                lastMessageQuery
+            )
+        }
+        
+        @Selection
+        public struct SpaceRow: Equatable, Sendable, Identifiable {
+            public var id: UUID {
+                lastMessage?.id ?? UUID()
+            }
+            var lastMessage: Message?
+            
+        }
+        
+        private var lastMessageQuery: some StructuredQueriesCore.Statement<Message> {
+            Message
+                .where { $0.spaceID.eq(space.id) }
+                .order { $0.createdAt.desc() }
+                .limit(1)
+                .select { $0 }
         }
     }
     
@@ -48,12 +70,13 @@ public struct SpaceRowView: View {
                 .resizable()
                 .foregroundStyle(Color.accentColor.gradient)
                 .font(.title)
-                .frame(width: 56, height: 56)
+                .frame(width: 48, height: 48)
             VStack(alignment: .leading, spacing: 4) {
                 Text(store.space.title ?? "Space")
                     .font(.headline)
                     .fontWeight(.semibold)
-                Text("Some message")
+                Text(store.lastMessage?.text ?? "")
+                    .lineLimit(1)
                     .font(.subheadline)
                     .foregroundStyle(Color.secondary.gradient)
             }
