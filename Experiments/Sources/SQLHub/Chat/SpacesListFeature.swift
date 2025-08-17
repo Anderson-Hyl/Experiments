@@ -45,7 +45,7 @@ public struct SpacesListReducer {
         
         public enum View {
             case onTask
-            case onTappedSpaceRow(Space)
+            case onTappedSpaceRow(Space, User)
         }
     }
     
@@ -83,7 +83,7 @@ public struct SpacesListReducer {
                     uniqueElements: spaces.map { SpaceRowReducer.State(space: $0) }
                 )
                 return .none
-            case let .view(.onTappedSpaceRow(space)):
+            case let .view(.onTappedSpaceRow(space, user)):
                 
                 if state.selectedSpaceID == space.id {
                     state.selectedSpaceID = nil
@@ -91,7 +91,8 @@ public struct SpacesListReducer {
                     state.selectedSpaceID = space.id
                     state.destination = .spaceRoom(
                         SpaceRoomReducer.State(
-                            space: space
+                            space: space,
+														user: user
                         )
                     )
                 }
@@ -129,7 +130,7 @@ public struct SpacesListView: View {
             ) { spaceRowStore in
                 SpaceRowView(store: spaceRowStore)
                     .onTapGesture {
-                        send(.onTappedSpaceRow(spaceRowStore.space))
+											send(.onTappedSpaceRow(spaceRowStore.space, spaceRowStore.spaceRowValue.user))
                     }
                     .listRowBackground(
                         spaceRowBackground(of: spaceRowStore.id)

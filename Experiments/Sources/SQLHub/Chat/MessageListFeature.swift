@@ -13,7 +13,7 @@ public struct MessageListReducer {
         @FetchAll var messages: [Message]
         public init(spaceID: Space.ID) {
             self.spaceID = spaceID
-            self.authUserID = UUID(uuidString: "cfe8415d-919e-4be8-bfa1-7a6253c5690a")!
+            self.authUserID = UUID(0)
             self._messages = FetchAll(
                 wrappedValue: [],
                 messagesQuery,

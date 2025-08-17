@@ -24,17 +24,6 @@ public struct MessageBubble: View {
 				bubbleBackground()
 					.clipShape(UnevenRoundedRectangle(cornerRadii: corner))
 			)
-			.background(
-				GeometryReader {
-					Color.clear.preference(
-						key: ViewOffsetKey.self,
-						value: $0.frame(in: .global).minY
-					)
-				}
-			)
-			.onPreferenceChange(ViewOffsetKey.self) {
-				offset = $0
-			}
 			.frame(maxWidth: bubbleWidth, alignment: isMine ? .trailing : .leading)
 			.frame(maxWidth: .infinity, alignment: isMine ? .trailing : .leading)
 			.onGeometryChange(for: CGFloat.self) { proxy in
@@ -194,9 +183,4 @@ struct BubbleLayout: Layout {
 			proposal: ProposedViewSize(width: timeSize.width, height: timeSize.height)
 		)
 	}
-}
-
-struct ViewOffsetKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-	static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {}
 }

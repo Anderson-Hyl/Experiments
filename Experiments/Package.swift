@@ -32,7 +32,8 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/pointfreeco/sharing-grdb.git", from: "0.5.0"),
         .package(url: "https://github.com/Anderson-Hyl/HeatMap.git", from: "1.0.0"),
-        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.17.1")
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.17.1"),
+				.package(url: "https://github.com/onevcat/Kingfisher.git", from: "8.5.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -60,7 +61,8 @@ let package = Package(
                 "Utils",
                 .product(name: "SharingGRDB", package: "sharing-grdb"),
                 .product(name: "HeatMap", package: "HeatMap"),
-                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+								.product(name: "Kingfisher", package: "Kingfisher")
             ],
         ),
     ],

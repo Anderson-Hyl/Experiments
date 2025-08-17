@@ -1,6 +1,7 @@
 import SwiftUI
 import ComposableArchitecture
 import SharingGRDB
+import Kingfisher
 
 @Reducer
 public struct SpaceRoomReducer {
@@ -12,8 +13,10 @@ public struct SpaceRoomReducer {
         var messageInput = MessageInputReducer.State()
         
         var space: Space
-        public init(space: Space) {
+			var user: User
+			public init(space: Space, user: User) {
             self.space = space
+				self.user = user
             self.messageList = MessageListReducer.State(spaceID: space.id)
         }
     }
@@ -71,7 +74,27 @@ public struct SpaceRoomView: View {
                 )
             )
         }
-        .navigationTitle("\(store.space.title ?? "Space Room")")
+//        .navigationTitle("\(store.space.title ?? "Space Room")")
+				.toolbar {
+					ToolbarItem(placement: .principal) {
+						Text(store.space.title ?? store.user.displayName)
+							.font(.headline)
+							.bold()
+					}
+					
+					ToolbarItem(placement: .primaryAction) {
+						Button {
+							
+						} label: {
+							SpaceAvatarView(
+								avatarSize: .medium,
+								space: store.space,
+								user: store.user
+							)
+						}
+						.buttonStyle(.plain)
+					}
+				}
     }
 }
 

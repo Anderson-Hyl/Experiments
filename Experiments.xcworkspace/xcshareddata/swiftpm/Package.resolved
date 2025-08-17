@@ -1,5 +1,5 @@
 {
-  "originHash" : "3a5884bad61932e39a506cc4fc309ae6c1151d7b14aeeafb59519d415d808178",
+  "originHash" : "5c1d6df3321c8a6c6767ef9e12c36b6a4a5189b2acb0d54cfe62a07be53ec579",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -29,12 +29,21 @@
       }
     },
     {
+      "identity" : "kingfisher",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/Kingfisher.git",
+      "state" : {
+        "revision" : "2015fda791daa72c8058619545a593bf8c1dd59f",
+        "version" : "8.5.0"
+      }
+    },
+    {
       "identity" : "sharing-grdb",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/sharing-grdb.git",
       "state" : {
-        "revision" : "9ccd88799dcf20c2f2ba8cd2771de5031bebab05",
-        "version" : "0.5.0"
+        "revision" : "f7f388be7a4b1f277b308c1090f90233e632e88e",
+        "version" : "0.5.1"
       }
     },
     {

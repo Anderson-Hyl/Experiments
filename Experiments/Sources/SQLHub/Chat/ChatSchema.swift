@@ -9,6 +9,24 @@ public struct User: Identifiable, Codable, Equatable, Sendable {
     public var isBot: Bool
     public var createdAt: Date
     public var updatedAt: Date
+	
+	public init(
+		id: UUID,
+		displayName: String,
+		avatarURL: String? = nil,
+		isBot: Bool,
+		createdAt: Date,
+		updatedAt: Date
+	) {
+		self.id = id
+		self.displayName = displayName
+		self.avatarURL = avatarURL
+		self.isBot = isBot
+		self.createdAt = createdAt
+		self.updatedAt = updatedAt
+	}
+	
+	static let placeholder = User(id: UUID(), displayName: "", isBot: false, createdAt: Date(), updatedAt: Date())
 }
 
 public enum SpaceKind: Int, Codable, QueryBindable, Sendable {  // 会话类型

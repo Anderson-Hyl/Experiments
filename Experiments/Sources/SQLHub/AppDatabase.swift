@@ -59,7 +59,7 @@ extension DatabaseMigrator {
             try #sql(
                 """
                 CREATE TABLE 'users' (
-                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "id" TEXT PRIMARY KEY NOT NULL,
                     "displayName" TEXT NOT NULL,
                     "avatarURL" TEXT,
                     "isBot" INTEGER NOT NULL DEFAULT 0,
@@ -73,7 +73,7 @@ extension DatabaseMigrator {
             try #sql(
                 """
                 CREATE TABLE 'spaces' (
-                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "id" TEXT PRIMARY KEY NOT NULL,
                     "kind" INTEGER NOT NULL DEFAULT 0,
                     "title" TEXT,
                     "createdAt" TEXT NOT NULL,
@@ -88,7 +88,7 @@ extension DatabaseMigrator {
             try #sql(
                 """
                 CREATE TABLE 'spaceParticipants' (
-                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "id" TEXT PRIMARY KEY NOT NULL,
                     "spaceID" TEXT NOT NULL,
                     "userID" TEXT NOT NULL,
                     "role" INTEGER NOT NULL DEFAULT 0,
@@ -106,7 +106,7 @@ extension DatabaseMigrator {
             try #sql(
                 """
                 CREATE TABLE 'messages' (
-                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                    "id" TEXT PRIMARY KEY NOT NULL,
                     "spaceID" TEXT NOT NULL,
                     "authorID" TEXT,
                     "role" INTEGER NOT NULL DEFAULT 0,
@@ -201,220 +201,245 @@ extension DatabaseMigrator {
 
 #if DEBUG
   extension Database {
-      func seedChatSampleData() throws {
-        let now = Date()
-        // Users
-        let userIDs = [
-          UUID(), // alice
-          UUID(), // bob
-          UUID(), // carol
-          UUID(), // bot/system
-        ]
-        // Spaces
-        let spaceIDs = [
-          UUID(), // direct: alice ↔︎ bob
-          UUID(), // group: team
-          UUID(), // system: announcements
-        ]
 
-        try seed {
-          // --- Users ---
-          User(
-            id: userIDs[0], displayName: "Alice", avatarURL: nil,
-            isBot: false, createdAt: now, updatedAt: now
-          )
-          User(
-            id: userIDs[1], displayName: "Bob", avatarURL: nil,
-            isBot: false, createdAt: now, updatedAt: now
-          )
-          User(
-            id: userIDs[2], displayName: "Carol", avatarURL: nil,
-            isBot: false, createdAt: now, updatedAt: now
-          )
-          User(
-            id: userIDs[3], displayName: "System Bot", avatarURL: nil,
-            isBot: true, createdAt: now, updatedAt: now
-          )
+		/// 批量生成 Chat 测试数据
+		///
+		/// - 参数说明:
+		///   - userCount: 生成多少用户（会按 1/7 概率生成 bot）
+		///   - directCount: 私聊会话个数（每个 2 人）
+		///   - groupCount: 群聊会话个数（每个 3~8 人）
+		///   - systemCount: 系统会话个数
+		///   - daysBack: 消息分布在过去多少天
+		///   - messagesPerSpaceRange: 每个会话生成的消息条数区间（闭区间）
+		///   - threadProbability: 一条消息成为线程根的概率
+		///   - replyFollowProbability: 线程根之后，下一条继续在同一线程里回复的概率
+		func seedChatSampleData(
+			userCount: Int = 60,
+			directCount: Int = 40,
+			groupCount: Int = 16,
+			systemCount: Int = 2,
+			daysBack: Int = 45,
+			messagesPerSpaceRange: ClosedRange<Int> = 80...350,
+			threadProbability: Double = 0.10,
+			replyFollowProbability: Double = 0.50
+		) throws {
 
-          // --- Spaces ---
-          Space(
-            id: spaceIDs[0], kind: .direct, title: nil,
-            createdAt: now, updatedAt: now, archivedAt: nil, lastMessageAt: nil
-          )
-          Space(
-            id: spaceIDs[1], kind: .group, title: "Team Chat",
-            createdAt: now, updatedAt: now, archivedAt: nil, lastMessageAt: nil
-          )
-          Space(
-            id: spaceIDs[2], kind: .system, title: "Announcements",
-            createdAt: now, updatedAt: now, archivedAt: nil, lastMessageAt: nil
-          )
+			let now = Date()
+			var rng = SystemRandomNumberGenerator()
+			let me = UUID(0) // 本机登录用户
 
-          // --- Space Participants ---
-          // direct: alice & bob
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[0], userID: userIDs[0],
-            role: .member, isMuted: false, joinedAt: now, leftAt: nil
-          )
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[0], userID: userIDs[1],
-            role: .member, isMuted: false, joinedAt: now, leftAt: nil
-          )
+			// MARK: Helpers
 
-          // group: alice, bob, carol
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[1], userID: userIDs[0],
-            role: .owner, isMuted: false, joinedAt: now, leftAt: nil
-          )
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[1], userID: userIDs[1],
-            role: .admin, isMuted: false, joinedAt: now, leftAt: nil
-          )
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[1], userID: userIDs[2],
-            role: .member, isMuted: false, joinedAt: now, leftAt: nil
-          )
+			func randomDate(withinDaysBack days: Int) -> Date {
+				let seconds = Double(Int.random(in: 0..<(days*24*3600), using: &rng))
+				return now.addingTimeInterval(-seconds)
+			}
+			func randomTextToken() -> String {
+				let bag = ["hello","world","swift","chat","tca","async","await","compose","actor","erlang","gleam","ocaml","lambda","query","index","sqlite","grdb","ios","watch","server","graph","hash","tool","call","media","event","bot","user","system","assistant","deadline","review","standup","sprint","design","perf","cache","retry","error","ok","done","note","todo","fix"]
+				return bag.randomElement(using: &rng)!
+			}
+			func randomSentence(wordCount: Int) -> String {
+				(0..<wordCount).map { _ in randomTextToken() }.joined(separator: " ")
+			}
+			func pickDistinctIndices(count: Int, from n: Int) -> [Int] {
+				var idxs = Array(0..<n)
+				idxs.shuffle(using: &rng)
+				return Array(idxs.prefix(count))
+			}
 
-          // system: 所有人 + bot（是否加成员关系看你的业务，这里示例加上）
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[3],
-            role: .admin, isMuted: false, joinedAt: now, leftAt: nil
-          )
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[0],
-            role: .member, isMuted: true, joinedAt: now, leftAt: nil
-          )
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[1],
-            role: .member, isMuted: false, joinedAt: now, leftAt: nil
-          )
-          SpaceParticipant(
-            id: UUID(), spaceID: spaceIDs[2], userID: userIDs[2],
-            role: .member, isMuted: false, joinedAt: now, leftAt: nil
-          )
+			// MARK: 1) Users 计划 & 插入
 
-          // --- Messages (spaceSeq 单调递增 per space) ---
+			let userIDs: [UUID] = (0..<userCount).map { i in i == 0 ? me : UUID() }
 
-          // Direct (Alice ↔︎ Bob)
-          let d0 = now.addingTimeInterval(-3600)
-          let m00 = UUID(), m01 = UUID(), m02 = UUID()
-          Message(
-            id: m00,
-            spaceID: spaceIDs[0],
-            authorID: userIDs[0],
-            role: .user, type: .text, state: .sent,
-            spaceSeq: 1,
-            text: "Hi Bob! Have you tried the new build?",
-            contentJSON: nil, replyToMessageID: nil, threadRootID: nil,
-            createdAt: d0, sentAt: d0, editedAt: nil, deletedAt: nil
-          )
-          Message(
-            id: m01,
-            spaceID: spaceIDs[0],
-            authorID: userIDs[1],
-            role: .user, type: .text, state: .sent,
-            spaceSeq: 2,
-            text: "Hey Alice, yes! It looks good so far 👍",
-            contentJSON: nil, replyToMessageID: m00, threadRootID: nil,
-            createdAt: d0.addingTimeInterval(60), sentAt: d0.addingTimeInterval(60),
-            editedAt: nil, deletedAt: nil
-          )
-          Message(
-            id: m02,
-            spaceID: spaceIDs[0],
-            authorID: userIDs[0],
-            role: .user, type: .media, state: .sent,
-            spaceSeq: 3,
-            text: "Here is the screenshot.",
-            contentJSON: nil, // 未来可放 JSON 块，例如附件元数据
-            replyToMessageID: m01, threadRootID: nil,
-            createdAt: d0.addingTimeInterval(120), sentAt: d0.addingTimeInterval(120),
-            editedAt: nil, deletedAt: nil
-          )
+			try seed {
+				for i in 0..<userCount {
+					let created = randomDate(withinDaysBack: daysBack)
+					User(
+						id: userIDs[i],
+						displayName: "User \(i)",
+						avatarURL: Bool.random(using: &rng) ? nil : "https://picsum.photos/id/\(100 + i)/200/200",
+						isBot: (i != 0) && (i % 7 == 0), // 避免把“我”标成 bot
+						createdAt: created,
+						updatedAt: now
+					)
+				}
+			}
 
-          // Group (Team Chat) with a thread
-          let g0 = now.addingTimeInterval(-1800)
-          let gm0 = UUID(), gm1 = UUID(), gm2 = UUID(), gm3 = UUID()
-          // 根消息（线程根=自己）
-          Message(
-            id: gm0,
-            spaceID: spaceIDs[1],
-            authorID: userIDs[2],
-            role: .user, type: .text, state: .sent,
-            spaceSeq: 1,
-            text: "Standup in 10 minutes. Any blockers?",
-            contentJSON: nil,
-            replyToMessageID: nil, threadRootID: gm0,
-            createdAt: g0, sentAt: g0, editedAt: nil, deletedAt: nil
-          )
-          // 线程回复 1
-          Message(
-            id: gm1,
-            spaceID: spaceIDs[1],
-            authorID: userIDs[0],
-            role: .user, type: .text, state: .sent,
-            spaceSeq: 2,
-            text: "All good here.",
-            contentJSON: nil,
-            replyToMessageID: gm0, threadRootID: gm0,
-            createdAt: g0.addingTimeInterval(45), sentAt: g0.addingTimeInterval(45),
-            editedAt: nil, deletedAt: nil
-          )
-          // 线程回复 2（assistant 示例）
-          Message(
-            id: gm2,
-            spaceID: spaceIDs[1],
-            authorID: userIDs[3], // bot
-            role: .assistant, type: .text, state: .sent,
-            spaceSeq: 3,
-            text: "Reminder: sprint review tomorrow at 2pm.",
-            contentJSON: nil,
-            replyToMessageID: gm0, threadRootID: gm0,
-            createdAt: g0.addingTimeInterval(60), sentAt: g0.addingTimeInterval(60),
-            editedAt: nil, deletedAt: nil
-          )
-          // 非线程普通消息（toolCall 示例）
-          Message(
-            id: gm3,
-            spaceID: spaceIDs[1],
-            authorID: userIDs[1],
-            role: .user, type: .toolCall, state: .sent,
-            spaceSeq: 4,
-            text: "run: summarize last standup", // 仅示意；未来可配合 ToolCall 表
-            contentJSON: nil,
-            replyToMessageID: nil, threadRootID: nil,
-            createdAt: g0.addingTimeInterval(120), sentAt: g0.addingTimeInterval(120),
-            editedAt: nil, deletedAt: nil
-          )
+			// MARK: 2) Spaces 计划 & 插入
 
-          // System (Announcements)
-          let s0 = now.addingTimeInterval(-600)
-          let sm0 = UUID(), sm1 = UUID()
-          Message(
-            id: sm0,
-            spaceID: spaceIDs[2],
-            authorID: userIDs[3], // system bot
-            role: .system, type: .event, state: .sent,
-            spaceSeq: 1,
-            text: "Welcome to Announcements channel.",
-            contentJSON: nil,
-            replyToMessageID: nil, threadRootID: nil,
-            createdAt: s0, sentAt: s0, editedAt: nil, deletedAt: nil
-          )
-          Message(
-            id: sm1,
-            spaceID: spaceIDs[2],
-            authorID: userIDs[3],
-            role: .system, type: .text, state: .sent,
-            spaceSeq: 2,
-            text: "Downtime scheduled tonight 23:00–23:15 UTC.",
-            contentJSON: nil,
-            replyToMessageID: nil, threadRootID: nil,
-            createdAt: s0.addingTimeInterval(90), sentAt: s0.addingTimeInterval(90),
-            editedAt: nil, deletedAt: nil
-          )
-        }
-      }
+			let directSpaceIDs = (0..<directCount).map { _ in UUID() }
+			let groupSpaceIDs  = (0..<groupCount).map { _ in UUID() }
+			let systemSpaceIDs = (0..<systemCount).map { _ in UUID() }
+
+			try seed {
+				// Direct
+				for sid in directSpaceIDs {
+					let created = randomDate(withinDaysBack: daysBack)
+					Space(id: sid, kind: .direct, title: nil,
+								createdAt: created, updatedAt: created, archivedAt: nil, lastMessageAt: nil)
+				}
+				// Group
+				for (i, sid) in groupSpaceIDs.enumerated() {
+					let created = randomDate(withinDaysBack: daysBack)
+					Space(id: sid, kind: .group, title: "Group \(i)",
+								createdAt: created, updatedAt: created, archivedAt: nil, lastMessageAt: nil)
+				}
+				// System
+				for (i, sid) in systemSpaceIDs.enumerated() {
+					let created = randomDate(withinDaysBack: daysBack)
+					Space(id: sid, kind: .system, title: "Announcements \(i)",
+								createdAt: created, updatedAt: created, archivedAt: nil, lastMessageAt: nil)
+				}
+			}
+
+			// MARK: 3) Participants 计划（先在 Swift 里计划，再插入）
+
+			// 直聊：前 N 个强制包含“我”
+			let directsWithMe = min(10, directCount)
+			var directPairs: [(UUID, UUID)] = []
+			for i in 0..<directCount {
+				if i < directsWithMe {
+					var other = userIDs.randomElement(using: &rng)!
+					if other == me { other = userIDs[1] }
+					directPairs.append((me, other))
+				} else {
+					let a = userIDs.randomElement(using: &rng)!
+					var b = userIDs.randomElement(using: &rng)!
+					if a == b { b = me }
+					directPairs.append((a, b))
+				}
+			}
+
+			// 群聊：至少一半包含“我”，成员 3~8 人
+			var groupMembers: [UUID: [UUID]] = [:]
+			for (i, sid) in groupSpaceIDs.enumerated() {
+				var members = pickDistinctIndices(count: Int.random(in: 3...8, using: &rng), from: userCount).map { userIDs[$0] }
+				if i % 2 == 0, !members.contains(me) { members[0] = me }
+				members = Array(Set(members)) // 去重
+				groupMembers[sid] = members
+			}
+
+			// 系统：全员
+			var systemMembers: [UUID: [UUID]] = [:]
+			for sid in systemSpaceIDs { systemMembers[sid] = userIDs }
+
+			// 统一 participants 计划表
+			var participantsBySpace: [UUID: [UUID]] = [:]
+			for (i, sid) in directSpaceIDs.enumerated() { participantsBySpace[sid] = [directPairs[i].0, directPairs[i].1] }
+			for (sid, m) in groupMembers { participantsBySpace[sid] = m }
+			for (sid, m) in systemMembers { participantsBySpace[sid] = m }
+
+			// 插入 participants
+			try seed {
+				// Direct
+				for (i, sid) in directSpaceIDs.enumerated() {
+					let (u1, u2) = directPairs[i]
+					SpaceParticipant(id: UUID(), spaceID: sid, userID: u1, role: .member, isMuted: false, joinedAt: now, leftAt: nil)
+					SpaceParticipant(id: UUID(), spaceID: sid, userID: u2, role: .member, isMuted: false, joinedAt: now, leftAt: nil)
+				}
+				// Group
+				for sid in groupSpaceIDs {
+					for (j, uid) in (groupMembers[sid] ?? []).enumerated() {
+						let role: SpaceRole = j == 0 ? .owner : (j == 1 ? .admin : .member)
+						SpaceParticipant(id: UUID(), spaceID: sid, userID: uid, role: role, isMuted: Bool.random(using: &rng), joinedAt: now, leftAt: nil)
+					}
+				}
+				// System
+				for sid in systemSpaceIDs {
+					for uid in (systemMembers[sid] ?? []) {
+						SpaceParticipant(id: UUID(), spaceID: sid, userID: uid, role: .member, isMuted: false, joinedAt: now, leftAt: nil)
+					}
+				}
+			}
+
+			// MARK: 4) Messages 计划 & 插入
+
+			func roleForAuthor(_ uid: UUID) -> MessageRole {
+				if let idx = userIDs.firstIndex(of: uid), idx != 0, idx % 7 == 0 {
+					return Bool.random(using: &rng) ? .assistant : .system
+				}
+				return .user
+			}
+			func randomMessageType() -> MessageType {
+				let r = Double.random(in: 0..<1, using: &rng)
+				switch r {
+				case ..<0.75: return .text
+				case ..<0.88: return .media
+				case ..<0.97: return .toolCall
+				default:      return .event
+				}
+			}
+
+			let allSpaces = directSpaceIDs + groupSpaceIDs + systemSpaceIDs
+
+			for sid in allSpaces {
+				guard let authors = participantsBySpace[sid], !authors.isEmpty else { continue }
+
+				let n = Int.random(in: messagesPerSpaceRange, using: &rng)
+				let ts = (0..<n).map { _ in randomDate(withinDaysBack: daysBack) }.sorted()
+
+				var msgs: [Message] = []
+				var currentThreadRoot: UUID? = nil
+				var lastMessageID: UUID? = nil
+
+				for (i, t) in ts.enumerated() {
+					let seq = Int64(i + 1)
+					let mid = UUID()
+					let author = authors.randomElement(using: &rng)!
+					let role = roleForAuthor(author)
+					let type = randomMessageType()
+
+					var replyTo: UUID? = nil
+					var threadRoot: UUID? = nil
+					if Bool.random(using: &rng, probability: threadProbability) {
+						currentThreadRoot = mid
+						threadRoot = mid
+					} else if let root = currentThreadRoot,
+										Bool.random(using: &rng, probability: replyFollowProbability) {
+						threadRoot = root
+						replyTo = lastMessageID ?? root
+					} else if Bool.random(using: &rng) {
+						currentThreadRoot = nil
+					}
+
+					let edited  = Bool.random(using: &rng, probability: 0.06) ? t.addingTimeInterval(60) : nil
+					let deleted = Bool.random(using: &rng, probability: 0.03) ? t.addingTimeInterval(Double(Int.random(in: 120...7200, using: &rng))) : nil
+
+					msgs.append(
+						Message(
+							id: mid, spaceID: sid, authorID: author,
+							role: role, type: type, state: .sent,
+							spaceSeq: seq,
+							text: type == .text ? randomSentence(wordCount: Int.random(in: 3...16, using: &rng)) : "\(type)",
+							contentJSON: nil,
+							replyToMessageID: replyTo,
+							threadRootID: threadRoot,
+							createdAt: t, sentAt: t, editedAt: edited, deletedAt: deleted
+						)
+					)
+					lastMessageID = mid
+				}
+
+				try seed {
+					for m in msgs { m }
+				}
+			}
+
+			// MARK: 5) 回填 lastMessageAt（未删除消息的最大 createdAt）
+			try #sql(
+				"""
+				UPDATE spaces
+				SET lastMessageAt = (
+					SELECT MAX(createdAt)
+					FROM messages
+					WHERE messages.spaceID = spaces.id
+						AND messages.deletedAt IS NULL
+				),
+						updatedAt = COALESCE(lastMessageAt, updatedAt)
+				"""
+			).execute(self)
+		}
+
     func seedSampleData() throws {
       let remindersListIDs = (0...2).map { _ in UUID() }
       let reminderIDs = (0...10).map { _ in UUID() }
@@ -542,3 +567,10 @@ extension DatabaseMigrator {
     }
   }
 #endif
+
+private extension Bool {
+	static func random<T: RandomNumberGenerator>(using rng: inout T, probability p: Double) -> Bool {
+		precondition(p >= 0 && p <= 1, "probability must be 0...1")
+		return Double.random(in: 0..<1, using: &rng) < p
+	}
+}
