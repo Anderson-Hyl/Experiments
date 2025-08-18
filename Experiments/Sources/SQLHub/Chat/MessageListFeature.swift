@@ -46,11 +46,8 @@ public struct MessageListReducer {
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .view(.onTask):
-                return .none
-            case .view(.loadNextPage):
-                state.isLoadingNextPage = true
-                return loadMessagesBasedOnTailSeq(state: &state)
+            case .view(.onTask), .view(.loadNextPage):
+                return loadMessages(state: &state)
             case let .stopLoadingNextPage(messages):
                 state.messages.append(contentsOf: messages)
                 state.isLoadingNextPage = false
@@ -61,11 +58,14 @@ public struct MessageListReducer {
                 return .none
             }
         }
-        ._printChanges()
     }
     
-    private func loadMessagesBasedOnTailSeq(state: inout State) -> Effect<Action> {
-        .run { [spaceID = state.spaceID, tailSeq = state.tailSeq] send in
+    private func loadMessages(state: inout State) -> Effect<Action> {
+        guard state.hasMoreMessages, !state.isLoadingNextPage else {
+            return .none
+        }
+        state.isLoadingNextPage = true
+        return .run { [spaceID = state.spaceID, tailSeq = state.tailSeq] send in
             @Dependency(\.defaultDatabase) var database
             let messages = try await database.read { db in
                 try Message
@@ -74,6 +74,8 @@ public struct MessageListReducer {
                     .limit(messageListPageCount)
                     .fetchAll(db)
             }
+            @Dependency(\.continuousClock) var clock
+            try await clock.sleep(for: .seconds(1.5))
             await send(.stopLoadingNextPage(messages))
         }
     }
@@ -93,21 +95,22 @@ public struct MessageListView: View {
                         messageContent(message: message)
                     }
                 }
-                Group {
-                    if store.isLoadingNextPage {
-                        ProgressView()
-                            .padding(.vertical, 12)
-                    } else {
-                        Color.clear
-                            .frame(height: 1)
-                            .onAppear {
-                                guard !store.isLoadingNextPage, store.hasMoreMessages else { return }
-                                send(.loadNextPage)
-                            }
-                    }
+                if store.isLoadingNextPage {
+                    ProgressView()
+                        .padding(.vertical, 12)
                 }
             }
             .flippedUpsideDown()
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y
+            } action: { oldValue, newValue in
+                guard newValue >= 60 else { return }
+                guard !store.isLoadingNextPage, store.hasMoreMessages else { return }
+                send(.loadNextPage)
+            }
+            .task {
+                await send(.onTask).finish()
+            }
         }
     }
 
@@ -191,7 +194,6 @@ public struct MessageListView: View {
                 topTrailing: corners.topRight
             )
         )
-        .id(message.id)
         .flippedUpsideDown()
         .padding(.horizontal, 6)
         .padding(.vertical, -3)
