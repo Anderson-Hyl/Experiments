@@ -19,6 +19,7 @@ extension RemindersList.Draft: Identifiable, Equatable, Hashable, Sendable {}
 @Table
 public struct Reminder: Identifiable, Equatable, Sendable {
     public let id: UUID
+    public var createdAt: Date?
     public var dueDate: Date?
     public var isCompleted = false
     public var isFlagged = false
@@ -27,9 +28,11 @@ public struct Reminder: Identifiable, Equatable, Sendable {
     public var priority: Priority?
     public var remindersListID: RemindersList.ID
     public var title = ""
+    public var updatedAt: Date?
     
     public init(
         id: UUID,
+        createdAt: Date? = nil,
         dueDate: Date? = nil,
         isCompleted: Bool = false,
         isFlagged: Bool = false,
@@ -37,9 +40,11 @@ public struct Reminder: Identifiable, Equatable, Sendable {
         position: Int = 0,
         priority: Priority? = nil,
         remindersListID: RemindersList.ID,
-        title: String = ""
+        title: String = "",
+        updatedAt: Date? = nil
     ) {
         self.id = id
+        self.createdAt = createdAt
         self.dueDate = dueDate
         self.isCompleted = isCompleted
         self.isFlagged = isFlagged
@@ -48,6 +53,7 @@ public struct Reminder: Identifiable, Equatable, Sendable {
         self.priority = priority
         self.remindersListID = remindersListID
         self.title = title
+        self.updatedAt = updatedAt
     }
 }
 

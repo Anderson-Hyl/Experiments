@@ -122,6 +122,8 @@ public struct RemindersListReducer {
             case onTapRemindersList(RemindersList.ID)
             case onTapNewReminder
             case onTapHeatMapCell(RemindersDetailReducer.DetailType)
+            case onTapDeleteRemindersList(RemindersList.ID)
+            case onTapEditRemindersList(RemindersList)
         }
     }
 
@@ -175,6 +177,20 @@ public struct RemindersListReducer {
                     )
                 )
                 return .none
+                
+            case let .view(.onTapDeleteRemindersList(remindersListID)):
+                return .run { _ in
+                    @Dependency(\.defaultDatabase) var database
+                    try database.write { db in
+                        try RemindersList
+                            .find(remindersListID)
+                            .delete()
+                            .execute(db)
+                    }
+                }
+                
+            case .view(.onTapEditRemindersList):
+                return .none
             }
         }
         .ifLet(\.$destination, action: \.destination)
@@ -209,7 +225,6 @@ public struct RemindersListView: View {
                         HStack {
                             Image(systemName: "list.bullet.circle.fill")
                                 .font(.largeTitle)
-                                .foregroundStyle(remindersListState.remindersList.color)
                                 .background(
                                     Color.white.clipShape(Circle()).padding(4)
                                 )
@@ -218,9 +233,26 @@ public struct RemindersListView: View {
                             Text("\(remindersListState.remindersCount)")
                                 .foregroundStyle(.gray)
                         }
+                        .foregroundStyle(remindersListState.remindersList.color)
                         .contentShape(.rect)
                     }
-                    .buttonStyle(.plain)
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            send(.onTapDeleteRemindersList(remindersListState.remindersList.id))
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        
+                        Button {
+                            remindersListForm = RemindersList.Draft(remindersListState.remindersList)
+                        } label: {
+                            Image(systemName: "info.circle")
+                        }
+                    }
+                }
+                
+                .onMove { source, destination in
+                    
                 }
             } header: {
                 Text("My Lists")
@@ -286,6 +318,13 @@ public struct RemindersListView: View {
             )
         ) { remindersDetailStore in
             RemindersDetailView(store: remindersDetailStore)
+        }
+        .sheet(item: $remindersListForm) { remindersListDraft in
+            NavigationStack {
+                RemindersListForm(
+                    remindersList: remindersListDraft
+                )
+            }
         }
     }
 

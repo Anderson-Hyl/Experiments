@@ -228,7 +228,17 @@ public struct ReminderForm: View {
                       Text("List")
                     }
                 }
+            } footer: {
+                VStack {
+                    if let createdAt = store.reminder.createdAt {
+                        Text("CreatedAt: \(createdAt.formatted(date: .long, time: .shortened))")
+                    }
+                    if let updatedAt = store.reminder.updatedAt {
+                        Text("UpdatedAt: \(updatedAt.formatted(date: .long, time: .shortened))")
+                    }
+                }
             }
+            
         }
         .padding(.top, -28)
         .navigationBarTitleDisplayMode(.inline)

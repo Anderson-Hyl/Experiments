@@ -48,7 +48,38 @@ public func applicationDB() throws -> any DatabaseWriter {
     }
     migrator.registerReminderTables()
     migrator.registerChatTables()
+    
+    migrator.registerMigration("Add 'createdAt' and 'updatedAt' to 'reminders'") { db in
+        try #sql(
+        """
+        ALTER TABLE "reminders"
+        ADD COLUMN 'createdAt' TEXT
+        """)
+        .execute(db)
+        
+        try #sql(
+        """
+        ALTER TABLE "reminders"
+        ADD COLUMN 'updatedAt' TEXT
+        """)
+        .execute(db)
+    }
     try migrator.migrate(database)
+    
+    // MARK: - triggers
+    try database.write { db in
+        try Reminder.createTemporaryTrigger(afterInsertTouch: \.createdAt)
+            .execute(db)
+        try Reminder.createTemporaryTrigger(afterUpdateTouch: \.updatedAt)
+            .execute(db)
+        try RemindersList.createTemporaryTrigger(
+            after: .delete { old in
+                RemindersList.insert { RemindersList.Draft(title: "Reminders") }
+            } when: { old in
+                !RemindersList.exists()
+            })
+        .execute(db)
+    }
     return database
 }
 
