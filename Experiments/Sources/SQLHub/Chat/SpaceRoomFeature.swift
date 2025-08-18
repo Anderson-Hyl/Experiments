@@ -1,36 +1,36 @@
-import SwiftUI
 import ComposableArchitecture
-import SharingGRDB
 import Kingfisher
+import SharingGRDB
+import SwiftUI
 
 @Reducer
 public struct SpaceRoomReducer {
     public init() {}
-    
+
     @ObservableState
     public struct State: Equatable {
         var messageList: MessageListReducer.State
         var messageInput = MessageInputReducer.State()
-        
+
         var space: Space
-			var user: User
-			public init(space: Space, user: User) {
+        var user: User
+        public init(space: Space, user: User) {
             self.space = space
-				self.user = user
+            self.user = user
             self.messageList = MessageListReducer.State(spaceID: space.id)
         }
     }
-    
+
     public enum Action: ViewAction {
         case messageList(MessageListReducer.Action)
         case messageInput(MessageInputReducer.Action)
         case view(View)
-        
+
         public enum View {
             case onTask
         }
     }
-    
+
     public var body: some ReducerOf<Self> {
         Scope(state: \.messageList, action: \.messageList) {
             MessageListReducer()
@@ -74,27 +74,25 @@ public struct SpaceRoomView: View {
                 )
             )
         }
-//        .navigationTitle("\(store.space.title ?? "Space Room")")
-				.toolbar {
-					ToolbarItem(placement: .principal) {
-						Text(store.space.title ?? store.user.displayName)
-							.font(.headline)
-							.bold()
-					}
-					
-					ToolbarItem(placement: .primaryAction) {
-						Button {
-							
-						} label: {
-							SpaceAvatarView(
-								avatarSize: .medium,
-								space: store.space,
-								user: store.user
-							)
-						}
-						.buttonStyle(.plain)
-					}
-				}
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(store.space.title ?? store.user.displayName)
+                    .font(.headline)
+                    .bold()
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+
+                } label: {
+                    SpaceAvatarView(
+                        avatarSize: .medium,
+                        space: store.space,
+                        user: store.user
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
-

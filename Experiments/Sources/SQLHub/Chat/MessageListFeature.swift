@@ -2,6 +2,8 @@ import ComposableArchitecture
 import SharingGRDB
 import SwiftUI
 
+private let messageListPageCount = 2
+
 @Reducer
 public struct MessageListReducer {
     public init() {}
@@ -10,30 +12,34 @@ public struct MessageListReducer {
     public struct State: Equatable {
         var spaceID: Space.ID
         var authUserID: User.ID
-        @FetchAll var messages: [Message]
+        var messages: [Message] = []
+        var tailSeq: Int64 = .max
+        var hasMoreMessages = true
+        var isLoadingNextPage = false
+        var anchorID: Message.ID?
         public init(spaceID: Space.ID) {
             self.spaceID = spaceID
             self.authUserID = UUID(0)
-            self._messages = FetchAll(
-                wrappedValue: [],
-                messagesQuery,
-            )
         }
 
-        private var messagesQuery: some StructuredQueriesCore.Statement<Message>
+        fileprivate var messagesQuery: some StructuredQueriesCore.Statement<Message>
         {
             Message
-                .where { $0.spaceID.eq(spaceID) }
+                .where { $0.spaceID.eq(spaceID) && $0.spaceSeq.lt(tailSeq) }
                 .order { $0.createdAt.desc() }
+                .limit(messageListPageCount)
                 .select { $0 }
+            
         }
     }
 
     public enum Action: ViewAction {
+        case stopLoadingNextPage([Message])
         case view(View)
 
         public enum View {
             case onTask
+            case loadNextPage
         }
     }
 
@@ -42,7 +48,33 @@ public struct MessageListReducer {
             switch action {
             case .view(.onTask):
                 return .none
+            case .view(.loadNextPage):
+                state.isLoadingNextPage = true
+                return loadMessagesBasedOnTailSeq(state: &state)
+            case let .stopLoadingNextPage(messages):
+                state.messages.append(contentsOf: messages)
+                state.isLoadingNextPage = false
+                state.hasMoreMessages = messages.count >= messageListPageCount
+                if let lastMessage = messages.last {
+                    state.tailSeq = lastMessage.spaceSeq
+                }
+                return .none
             }
+        }
+        ._printChanges()
+    }
+    
+    private func loadMessagesBasedOnTailSeq(state: inout State) -> Effect<Action> {
+        .run { [spaceID = state.spaceID, tailSeq = state.tailSeq] send in
+            @Dependency(\.defaultDatabase) var database
+            let messages = try await database.read { db in
+                try Message
+                    .where { $0.spaceID.eq(spaceID) && $0.spaceSeq.lt(tailSeq) }
+                    .order { $0.createdAt.desc() }
+                    .limit(messageListPageCount)
+                    .fetchAll(db)
+            }
+            await send(.stopLoadingNextPage(messages))
         }
     }
 }
@@ -59,6 +91,19 @@ public struct MessageListView: View {
                 LazyVStack {
                     ForEach(store.messages) { message in
                         messageContent(message: message)
+                    }
+                }
+                Group {
+                    if store.isLoadingNextPage {
+                        ProgressView()
+                            .padding(.vertical, 12)
+                    } else {
+                        Color.clear
+                            .frame(height: 1)
+                            .onAppear {
+                                guard !store.isLoadingNextPage, store.hasMoreMessages else { return }
+                                send(.loadNextPage)
+                            }
                     }
                 }
             }
