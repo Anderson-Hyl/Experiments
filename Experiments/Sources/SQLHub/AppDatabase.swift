@@ -14,7 +14,7 @@ public func applicationDB() throws -> any DatabaseWriter {
         #if DEBUG
             db.trace(options: .profile) {
                 if context == .live {
-                    logger.debug("\($0.expandedDescription)")
+//                    logger.debug("\($0.expandedDescription)")
                 } else {
                     print("\($0.expandedDescription)")
                 }

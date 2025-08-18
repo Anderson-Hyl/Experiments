@@ -114,6 +114,8 @@ public struct Message: Identifiable, Codable, Equatable, Sendable {
     public var deletedAt: Date?
 }
 
+extension Message.Draft: Sendable {}
+
 //@Table
 //public struct Dialog: Identifiable, Sendable, Equatable, Codable {
 //	public let id: UUID

@@ -58,6 +58,7 @@ public struct MessageListReducer {
                 return .none
             }
         }
+        ._printChanges()
     }
     
     private func loadMessages(state: inout State) -> Effect<Action> {
@@ -70,7 +71,7 @@ public struct MessageListReducer {
             let messages = try await database.read { db in
                 try Message
                     .where { $0.spaceID.eq(spaceID) && $0.spaceSeq.lt(tailSeq) }
-                    .order { $0.createdAt.desc() }
+                    .order { $0.spaceSeq.desc() }
                     .limit(messageListPageCount)
                     .fetchAll(db)
             }
@@ -97,7 +98,7 @@ public struct MessageListView: View {
                 }
                 if store.isLoadingNextPage {
                     ProgressView()
-                        .padding(.vertical, 12)
+                        .padding(.vertical)
                 }
             }
             .flippedUpsideDown()

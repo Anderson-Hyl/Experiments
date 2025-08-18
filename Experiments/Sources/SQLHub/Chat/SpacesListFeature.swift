@@ -130,7 +130,7 @@ public struct SpacesListView: View {
             ) { spaceRowStore in
                 SpaceRowView(store: spaceRowStore)
                     .onTapGesture {
-											send(.onTappedSpaceRow(spaceRowStore.space, spaceRowStore.spaceRowValue.user))
+                        send(.onTappedSpaceRow(spaceRowStore.space, spaceRowStore.spaceRowValue.user))
                     }
                     .listRowBackground(
                         spaceRowBackground(of: spaceRowStore.id)

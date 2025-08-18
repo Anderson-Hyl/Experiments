@@ -100,6 +100,6 @@ public struct MessageInputView: View {
             Color(.systemGray6)
 		)
 		.clipShape(.rect(cornerRadius: 28))
-		.padding()
+		.padding(6)
 	}
 }
