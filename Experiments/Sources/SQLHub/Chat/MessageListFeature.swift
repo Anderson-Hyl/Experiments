@@ -26,7 +26,7 @@ public struct MessageListReducer {
         {
             Message
                 .where { $0.spaceID.eq(spaceID) && $0.spaceSeq.lt(tailSeq) }
-                .order { $0.createdAt.desc() }
+                .order { $0.spaceSeq.desc() }
                 .limit(messageListPageCount)
                 .select { $0 }
             
@@ -194,6 +194,7 @@ public struct MessageListView: View {
                 topTrailing: corners.topRight
             )
         )
+        .id(message.id)
         .flippedUpsideDown()
         .padding(.horizontal, 6)
         .padding(.vertical, -3)
