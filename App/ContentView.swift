@@ -30,10 +30,10 @@ struct ContentView: View {
             }
             
             NavigationLink {
-                SpacesListView(
+                ChatMainView(
                     store: Store(
-                        initialState: SpacesListReducer.State(),
-                        reducer: { SpacesListReducer() }
+                        initialState: ChatMainReducer.State(),
+                        reducer: { ChatMainReducer() }
                     )
                 )
             } label: {

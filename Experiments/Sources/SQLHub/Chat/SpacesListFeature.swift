@@ -1,16 +1,16 @@
-import SharingGRDB
 import ComposableArchitecture
+import SharingGRDB
 import SwiftUI
 
 @Reducer
 public struct SpacesListReducer {
     public init() {}
-    
+
     @Reducer(state: .equatable)
     public enum Destination {
         case spaceRoom(SpaceRoomReducer)
     }
-    
+
     @ObservableState
     public struct State: Equatable {
         @FetchAll(
@@ -22,33 +22,33 @@ public struct SpacesListReducer {
         var spaceRowStates: [SpaceRow]
         var spaceRows: IdentifiedArrayOf<SpaceRowReducer.State> = []
         @Presents var destination: Destination.State?
-        var selectedSpaceID: Space.ID?
+        @Shared(.uuidAppStorage("selectedSpaceID")) var selectedSpaceID: Space.ID?
         public init() {}
-        
+
         @Selection
         struct SpaceRow: Equatable, Identifiable {
             var space: Space
-            
+
             var id: UUID {
                 space.id
             }
         }
     }
-    
+
     public enum Action: ViewAction, BindableAction {
         case binding(BindingAction<State>)
         case destination(PresentationAction<Destination.Action>)
+        case dismissSelectedSpaceID
         case spaceRows(IdentifiedActionOf<SpaceRowReducer>)
         case spaceRowsUpdated([Space])
-        case dismissSelectedSpaceID
         case view(View)
-        
+
         public enum View {
             case onTask
-            case onTappedSpaceRow(Space, User)
+            case onTappedSpaceRow(Space.ID)
         }
     }
-    
+
     public var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce {
@@ -65,9 +65,6 @@ public struct SpacesListReducer {
             case .destination:
                 return .none
             case .dismissSelectedSpaceID:
-                if state.selectedSpaceID != nil {
-                    state.selectedSpaceID = nil
-                }
                 return .none
             case .spaceRows:
                 return .none
@@ -78,23 +75,16 @@ public struct SpacesListReducer {
                         .map { Action.spaceRowsUpdated($0.map(\.space)) }
                 }
                 
-            case let .spaceRowsUpdated(spaces):
+            case .spaceRowsUpdated(let spaces):
                 state.spaceRows = IdentifiedArray(
-                    uniqueElements: spaces.map { SpaceRowReducer.State(space: $0) }
+                    uniqueElements: spaces.map {
+                        SpaceRowReducer.State(space: $0)
+                    }
                 )
                 return .none
-            case let .view(.onTappedSpaceRow(space, user)):
-                
-                if state.selectedSpaceID == space.id {
-                    state.selectedSpaceID = nil
-                } else {
-                    state.selectedSpaceID = space.id
-                    state.destination = .spaceRoom(
-                        SpaceRoomReducer.State(
-                            space: space,
-														user: user
-                        )
-                    )
+            case .view(.onTappedSpaceRow(let spaceID)):
+                state.$selectedSpaceID.withLock {
+                    $0 = spaceID
                 }
                 return .none
             }
@@ -104,15 +94,7 @@ public struct SpacesListReducer {
         }
         .ifLet(\.$destination, action: \.destination)
     }
-    
-    private func dismissSelectedSpaceID(state: inout State) -> Effect<Action> {
-        if state.selectedSpaceID != nil {
-            state.selectedSpaceID = nil
-        }
-        return .none
-    }
 }
-
 
 @ViewAction(for: SpacesListReducer.self)
 public struct SpacesListView: View {
@@ -121,33 +103,21 @@ public struct SpacesListView: View {
         self.store = store
     }
     public var body: some View {
-        List {
-            ForEach(
-                store.scope(
-                    state: \.spaceRows,
-                    action: \.spaceRows
-                )
-            ) { spaceRowStore in
-                SpaceRowView(store: spaceRowStore)
-                    .onTapGesture {
-                        send(.onTappedSpaceRow(spaceRowStore.space, spaceRowStore.spaceRowValue.user))
-                    }
-                    .listRowBackground(
-                        spaceRowBackground(of: spaceRowStore.id)
-                    )
-            }
+        List(selection: $store.selectedSpaceID) {
+          ForEach(
+            store.scope(
+              state: \.spaceRows,
+              action: \.spaceRows
+            )
+          ) { spaceRowStore in
+            SpaceRowView(store: spaceRowStore)
+              .tag(spaceRowStore.id as Space.ID)
+              
+          }
         }
         .listStyle(.plain)
         .task {
             await send(.onTask).finish()
-        }
-        .navigationDestination(
-            item: $store.scope(
-                state: \.destination?.spaceRoom,
-                action: \.destination.spaceRoom
-            )
-        ) { spaceRoomStore in
-            SpaceRoomView(store: spaceRoomStore)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -164,7 +134,7 @@ public struct SpacesListView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     @ViewBuilder
     private func spaceRowBackground(of spaceID: Space.ID) -> some View {
         if store.selectedSpaceID == spaceID {
