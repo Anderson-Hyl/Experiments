@@ -113,6 +113,7 @@ public struct SpaceRowView: View {
 			.loadDiskFileSynchronously()
 			.cacheOriginalImage()
 			.fade(duration: 0.25)
+            .clipped()
 	}
 	
 	private var avatarPlaceholderView: some View {

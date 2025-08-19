@@ -35,8 +35,13 @@ extension SharedKey {
                 }
             },
             encode: { uuid in
-                var u = uuid?.uuid
-                return withUnsafeBytes(of: &u) { Data($0) }
+                guard let uuid else {
+                    return Data()                 // 约定：空 Data 表示“删除键”；save 里 removeObject
+                }
+                var raw = uuid.uuid               // uuid_t: 16 字节
+                let data = withUnsafeBytes(of: &raw) { Data($0) }
+                assert(data.count == 16)
+                return data
             }
         )
     }

@@ -46,7 +46,7 @@ public struct ChatMainReducer {
                 return .publisher {
                     state.$selectedSpaceID
                         .publisher
-                        .removeDuplicates(by: { $0 != $1 })
+                        .removeDuplicates(by: { $0 == $1 })
                         .map(Action.didSelectSpace)
                 }
             case let .didSelectSpace(spaceID):
@@ -70,6 +70,7 @@ public struct ChatMainReducer {
             }
         }
         .ifLet(\.$destination, action: \.destination)
+        ._printChanges()
     }
     
     private func updateSelectedSpaceID(state: inout State, spaceID: Space.ID?) -> Effect<Action> {
