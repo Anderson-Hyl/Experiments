@@ -22,8 +22,10 @@ public struct SpacesListReducer {
         var spaceRowStates: [SpaceRow]
         var spaceRows: IdentifiedArrayOf<SpaceRowReducer.State> = []
         @Presents var destination: Destination.State?
-        @Shared(.uuidAppStorage("selectedSpaceID")) var selectedSpaceID: Space.ID?
-        public init() {}
+        @Shared var selectedSpaceID: Space.ID?
+        public init(selectedSpaceID: Shared<Space.ID?>) {
+            _selectedSpaceID = selectedSpaceID
+        }
 
         @Selection
         struct SpaceRow: Equatable, Identifiable {

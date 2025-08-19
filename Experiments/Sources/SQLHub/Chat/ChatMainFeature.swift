@@ -14,10 +14,18 @@ public struct ChatMainReducer {
     
     @ObservableState
     public struct State: Equatable {
-        var spacesList = SpacesListReducer.State()
+        var spacesList: SpacesListReducer.State
         @Presents var destination: Destination.State?
-        @Shared(.uuidAppStorage("selectedSpaceID")) var selectedSpaceID: Space.ID?
-        public init() {}
+        var spaceRoom: SpaceRoomReducer.State?
+        @Shared var selectedSpaceID: Space.ID?
+        public init() {
+            let sharedSelected: Shared<Space.ID?> = .init(.uuidAppStorage("selectedSpaceID"))
+          self._selectedSpaceID = sharedSelected
+          self.spacesList = SpacesListReducer.State(selectedSpaceID: sharedSelected)
+            self.spacesList = SpacesListReducer.State(
+                selectedSpaceID: sharedSelected
+            )
+        }
     }
     
     public enum Action: ViewAction, BindableAction {
@@ -25,7 +33,7 @@ public struct ChatMainReducer {
         case didSelectSpace(Space.ID?)
         case didOpenSpaceRoom(Space, User)
         case spacesList(SpacesListReducer.Action)
-        case destination(PresentationAction<Destination.Action>)
+        case spaceRoom(SpaceRoomReducer.Action)
         case view(View)
         
         public enum View {
@@ -52,30 +60,30 @@ public struct ChatMainReducer {
             case let .didSelectSpace(spaceID):
                 return updateSelectedSpaceID(state: &state, spaceID: spaceID)
             case let .didOpenSpaceRoom(space, user):
-                state.destination = .spaceRoom(
-                    SpaceRoomReducer.State(
-                        space: space,
-                        user: user
-                    )
+                state.spaceRoom = SpaceRoomReducer.State(
+                    space: space,
+                    user: user
                 )
                 return .none
             case .binding:
                 return .none
             case .spacesList:
                 return .none
-            case .destination:
+            case .spaceRoom:
                 return .none
             case .view:
                 return .none
             }
         }
-        .ifLet(\.$destination, action: \.destination)
+        .ifLet(\.spaceRoom, action: \.spaceRoom) {
+            SpaceRoomReducer()
+        }
         ._printChanges()
     }
     
     private func updateSelectedSpaceID(state: inout State, spaceID: Space.ID?) -> Effect<Action> {
         guard let spaceID else {
-            state.destination = nil
+            state.spaceRoom = nil
             return .none
         }
         return .run { [spaceID] send in
@@ -115,8 +123,8 @@ public struct ChatMainView: View {
             )
         } detail: {
             if let spaceRoomStore = store.scope(
-                state: \.destination?.spaceRoom,
-                action: \.destination.spaceRoom
+                state: \.spaceRoom,
+                action: \.spaceRoom
             ) {
                 SpaceRoomView(store: spaceRoomStore)
             } else {
