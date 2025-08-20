@@ -10,4 +10,7 @@
    <FileRef
       location = "group:SQL-Chat.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:FioriReminders.xcodeproj">
+   </FileRef>
 </Workspace>

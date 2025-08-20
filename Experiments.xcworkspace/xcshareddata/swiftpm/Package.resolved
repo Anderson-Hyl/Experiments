@@ -1,6 +1,15 @@
 {
-  "originHash" : "5c1d6df3321c8a6c6767ef9e12c36b6a4a5189b2acb0d54cfe62a07be53ec579",
+  "originHash" : "0d8bdd96baa396da6b9cb998ec9444d3ebba3e030deaab4c35341587a4cbfc17",
   "pins" : [
+    {
+      "identity" : "cloud-sdk-ios-fiori",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SAP/cloud-sdk-ios-fiori.git",
+      "state" : {
+        "revision" : "0faa13e6a72d86487e02a7150fd3c5a4fe0c8fad",
+        "version" : "25.8.0"
+      }
+    },
     {
       "identity" : "combine-schedulers",
       "kind" : "remoteSourceControl",

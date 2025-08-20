@@ -3,6 +3,7 @@ import HeatMap
 import SharingGRDB
 import SwiftUI
 import Utils
+import FioriSwiftUI
 
 @Reducer
 public struct RemindersListReducer {
@@ -200,6 +201,22 @@ public struct RemindersListReducer {
 extension RemindersListHeatMapCell.Model: HeatMapValue {
     public var heat: Double {
         Double(count)
+    }
+}
+
+@ViewAction(for: RemindersListReducer.self)
+public struct FioriRemindersListView: View {
+    @Bindable public var store: StoreOf<RemindersListReducer>
+    @State private var remindersListForm: RemindersList.Draft?
+    public init(store: StoreOf<RemindersListReducer>) {
+        self.store = store
+    }
+    public var body: some View {
+        List {
+            Section {
+                
+            }
+        }
     }
 }
 
