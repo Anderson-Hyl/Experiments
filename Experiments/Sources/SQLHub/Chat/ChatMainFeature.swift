@@ -1,17 +1,17 @@
-import SwiftUI
 import ComposableArchitecture
 import SharingGRDB
+import SwiftUI
 import Utils
 
 @Reducer
 public struct ChatMainReducer {
     public init() {}
-    
+
     @Reducer(state: .equatable)
     public enum Destination {
         case spaceRoom(SpaceRoomReducer)
     }
-    
+
     @ObservableState
     public struct State: Equatable {
         var spacesList: SpacesListReducer.State
@@ -19,15 +19,19 @@ public struct ChatMainReducer {
         var spaceRoom: SpaceRoomReducer.State?
         @Shared var selectedSpaceID: Space.ID?
         public init() {
-            let sharedSelected: Shared<Space.ID?> = .init(.uuidAppStorage("selectedSpaceID"))
-          self._selectedSpaceID = sharedSelected
-          self.spacesList = SpacesListReducer.State(selectedSpaceID: sharedSelected)
+            let sharedSelected = Shared<Space.ID?>(
+                .uuidAppStorage("selectedSpaceID")
+            )
+            self._selectedSpaceID = sharedSelected
+            self.spacesList = SpacesListReducer.State(
+                selectedSpaceID: sharedSelected
+            )
             self.spacesList = SpacesListReducer.State(
                 selectedSpaceID: sharedSelected
             )
         }
     }
-    
+
     public enum Action: ViewAction, BindableAction {
         case binding(BindingAction<State>)
         case didSelectSpace(Space.ID?)
@@ -35,12 +39,12 @@ public struct ChatMainReducer {
         case spacesList(SpacesListReducer.Action)
         case spaceRoom(SpaceRoomReducer.Action)
         case view(View)
-        
+
         public enum View {
             case onTask
         }
     }
-    
+
     public var body: some ReducerOf<Self> {
         BindingReducer()
         Scope(state: \.spacesList, action: \.spacesList) {
@@ -57,9 +61,9 @@ public struct ChatMainReducer {
                         .removeDuplicates(by: { $0 == $1 })
                         .map(Action.didSelectSpace)
                 }
-            case let .didSelectSpace(spaceID):
+            case .didSelectSpace(let spaceID):
                 return updateSelectedSpaceID(state: &state, spaceID: spaceID)
-            case let .didOpenSpaceRoom(space, user):
+            case .didOpenSpaceRoom(let space, let user):
                 state.spaceRoom = SpaceRoomReducer.State(
                     space: space,
                     user: user
@@ -80,8 +84,10 @@ public struct ChatMainReducer {
         }
         ._printChanges()
     }
-    
-    private func updateSelectedSpaceID(state: inout State, spaceID: Space.ID?) -> Effect<Action> {
+
+    private func updateSelectedSpaceID(state: inout State, spaceID: Space.ID?)
+        -> Effect<Action>
+    {
         guard let spaceID else {
             state.spaceRoom = nil
             return .none
@@ -92,7 +98,7 @@ public struct ChatMainReducer {
                 let space = try Space
                     .find(spaceID)
                     .fetchOne(db)!
-                
+
                 let user = try SpaceParticipant
                     .where { $0.spaceID.eq(spaceID) && $0.userID.neq(UUID(0)) }
                     .join(User.all) { $0.userID.eq($1.id) }
@@ -109,7 +115,7 @@ public struct ChatMainReducer {
 @ViewAction(for: ChatMainReducer.self)
 public struct ChatMainView: View {
     @Bindable public var store: StoreOf<ChatMainReducer>
-    
+
     public init(store: StoreOf<ChatMainReducer>) {
         self.store = store
     }
@@ -134,7 +140,6 @@ public struct ChatMainView: View {
                 )
             }
         }
-        .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 380)
         .task {
             await send(.onTask).finish()
         }

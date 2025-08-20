@@ -29,16 +29,16 @@ struct ContentView: View {
                 Text("Reminders Experiment")
             }
             
-            NavigationLink {
-                ChatMainView(
-                    store: Store(
-                        initialState: ChatMainReducer.State(),
-                        reducer: { ChatMainReducer() }
-                    )
-                )
-            } label: {
-                Text("Chats Experiment")
-            }
+//            NavigationLink {
+//                ChatMainView(
+//                    store: Store(
+//                        initialState: ChatMainReducer.State(),
+//                        reducer: { ChatMainReducer() }
+//                    )
+//                )
+//            } label: {
+//                Text("Chats Experiment")
+//            }
         }
         .foregroundStyle(.primary)
         .navigationTitle("Experiments")

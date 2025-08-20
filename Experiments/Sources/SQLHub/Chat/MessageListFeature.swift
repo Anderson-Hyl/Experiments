@@ -40,7 +40,12 @@ public struct MessageListReducer {
         public enum View {
             case onTask
             case loadNextPage
+            case onDisappear
         }
+    }
+    
+    enum Cancel: Hashable {
+        case loadMessage
     }
 
     public var body: some ReducerOf<Self> {
@@ -48,6 +53,9 @@ public struct MessageListReducer {
             switch action {
             case .view(.onTask), .view(.loadNextPage):
                 return loadMessages(state: &state)
+                    .cancellable(id: Cancel.loadMessage, cancelInFlight: true)
+            case .view(.onDisappear):
+                return .cancel(id: Cancel.loadMessage)
             case let .stopLoadingNextPage(messages):
                 state.messages.append(contentsOf: messages)
                 state.isLoadingNextPage = false
@@ -75,8 +83,6 @@ public struct MessageListReducer {
                     .limit(messageListPageCount)
                     .fetchAll(db)
             }
-            @Dependency(\.continuousClock) var clock
-            try await clock.sleep(for: .seconds(1.5))
             await send(.stopLoadingNextPage(messages))
         }
     }
