@@ -3,7 +3,7 @@ import HeatMap
 import SharingGRDB
 import SwiftUI
 import Utils
-import FioriSwiftUI
+import FioriSwiftUICore
 
 @Reducer
 public struct RemindersListReducer {
@@ -214,7 +214,9 @@ public struct FioriRemindersListView: View {
     public var body: some View {
         List {
             Section {
-                
+                Card {
+                    
+                }
             }
         }
     }

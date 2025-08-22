@@ -5,6 +5,9 @@
       location = "group:Experiments">
    </FileRef>
    <FileRef
+      location = "group:MiniWire">
+   </FileRef>
+   <FileRef
       location = "group:App.xcodeproj">
    </FileRef>
    <FileRef
