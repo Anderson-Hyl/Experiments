@@ -195,6 +195,7 @@ public struct RemindersListReducer {
             }
         }
         .ifLet(\.$destination, action: \.destination)
+				._printChanges()
     }
 }
 
@@ -338,13 +339,6 @@ public struct RemindersListView: View {
         ) { remindersDetailStore in
             RemindersDetailView(store: remindersDetailStore)
         }
-        .sheet(item: $remindersListForm) { remindersListDraft in
-            NavigationStack {
-                RemindersListForm(
-                    remindersList: remindersListDraft
-                )
-            }
-        }
     }
 
     private var remindersListHeatMap: some View {
@@ -460,4 +454,19 @@ public struct RemindersListHeatMapCell: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+
+#Preview {
+	let _ = prepareDependencies {
+		$0.defaultDatabase = try! applicationDB()
+	}
+	NavigationStack {
+		RemindersListView(
+			store: Store(
+				initialState: RemindersListReducer.State(),
+				reducer: { RemindersListReducer() }
+			)
+		)
+	}
 }

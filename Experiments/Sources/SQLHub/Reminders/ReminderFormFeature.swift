@@ -98,6 +98,7 @@ public struct ReminderFormReducer {
                     try await database.write { db in
                         try Reminder.upsert { reminder }
                             .execute(db)
+											// TODO: update `remindersTag` table
                     }
                     await send(.view(.onTappedCancelButton))
                 }

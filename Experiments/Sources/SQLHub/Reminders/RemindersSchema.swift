@@ -4,7 +4,7 @@ import SwiftUI
 
 @Table
 public struct RemindersList: Identifiable, Equatable, Hashable, Sendable {
-    public let id: UUID
+    public let id: Int
     @Column(as: Color.HexRepresentation.self)
     public var color: Color = Self.defaultColor
     public var position = 0
@@ -18,7 +18,7 @@ extension RemindersList.Draft: Identifiable, Equatable, Hashable, Sendable {}
 
 @Table
 public struct Reminder: Identifiable, Equatable, Sendable {
-    public let id: UUID
+    public let id: Int
     public var createdAt: Date?
     public var dueDate: Date?
     public var isCompleted = false
@@ -31,7 +31,7 @@ public struct Reminder: Identifiable, Equatable, Sendable {
     public var updatedAt: Date?
     
     public init(
-        id: UUID,
+        id: Int,
         createdAt: Date? = nil,
         dueDate: Date? = nil,
         isCompleted: Bool = false,
@@ -87,11 +87,11 @@ public enum Priority: Int, QueryBindable, Sendable {
 
 @Table
 public struct Tag: Identifiable, Equatable, Hashable, Sendable {
-    public let id: UUID
+    public let id: Int
     public var title = ""
     
     public init(
-        id: UUID,
+        id: Int,
         title: String = ""
     ) {
         self.id = id
@@ -106,17 +106,14 @@ extension Tag.TableColumns {
 }
 
 @Table
-public struct ReminderTag: Identifiable, Sendable {
-    public let id: UUID
+public struct ReminderTag: Sendable {
     public var reminderID: Reminder.ID
     public var tagID: Tag.ID
     
     public init(
-        id: UUID,
         reminderID: Reminder.ID,
         tagID: Tag.ID
     ) {
-        self.id = id
         self.reminderID = reminderID
         self.tagID = tagID
     }

@@ -123,7 +123,7 @@ public struct RemindersDetailReducer {
                     case .flagged: reminder.isFlagged
                     case .remindersList(let remindersList): reminder.remindersListID.eq(remindersList.id)
                     case .scheduled: reminder.isScheduled
-                    case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
+                    case .tags(let tags): tag.id.ifnull(0).in(tags.map(\.id))
                     case .today: reminder.isToday
                     }
                 }

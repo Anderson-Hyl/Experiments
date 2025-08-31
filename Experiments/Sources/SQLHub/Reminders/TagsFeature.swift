@@ -8,7 +8,7 @@ public struct TagsReducer {
     
     @ObservableState
     public struct State: Equatable {
-        @FetchAll(Tag.all) var tags
+				@FetchAll(Tag.order(by: \.title)) var tags
         @Shared var selectedTags: [Tag]
         public init(selectedTags: Shared<[Tag]>) {
             self._selectedTags = selectedTags
