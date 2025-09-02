@@ -31,6 +31,35 @@ public struct MessageListReducer {
                 .select { $0 }
             
         }
+        
+//        // Q1.1
+//        fileprivate var latestMessages: some StructuredQueriesCore.Statement<Message> {
+//            Message
+//                .where { $0.spaceID.eq(spaceID) && $0.state.neq(.deleted) }
+//                .order { $0.createdAt.desc() }
+//                .limit(20)
+//                .select { $0 }
+//        }
+//        
+//        // Q1.2
+//        fileprivate var lastestMessgesOfUser: some StructuredQueriesCore.Statement<Message> {
+//            Message
+//                .where { $0.authorID.is(UUID(0)) && $0.state != .deleted }
+//                .order { $0.createdAt.desc() }
+//                .limit(50)
+//                .select { $0 }
+//        }
+//        
+//        // Q1.3
+//        fileprivate var messagesLike: some StructuredQueriesCore.Statement<Message> {
+//            Message
+//                .where { $0.spaceID.eq(spaceID) && $0.state != .deleted }
+//                .order { $0.createdAt.desc() }
+//                .where { $0.text.collate(.nocase).like("%keyword%") }
+//                .select { $0 }
+//        }
+        
+        
     }
 
     public enum Action: ViewAction {

@@ -99,7 +99,7 @@ public struct RemindersDetailReducer {
             let tags: [String]
         }
         
-        fileprivate var remindersQuery: some StructuredQueriesCore.Statement<Row> {
+        fileprivate var remindersQuery: some StructuredQueriesCore.Statement<Row> & Sendable {
             Reminder
                 .where {
                     if !showCompleted {

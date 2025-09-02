@@ -45,6 +45,16 @@ public struct Space: Identifiable, Codable, Equatable, Sendable {
     public var archivedAt: Date?
     // 为排序准备：每条消息写入时更新
     public var lastMessageAt: Date?
+    
+    public init(id: UUID, kind: SpaceKind, title: String? = nil, createdAt: Date, updatedAt: Date, archivedAt: Date? = nil, lastMessageAt: Date? = nil) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.archivedAt = archivedAt
+        self.lastMessageAt = lastMessageAt
+    }
 }
 
 // 参与者（多对多：User <-> Space）

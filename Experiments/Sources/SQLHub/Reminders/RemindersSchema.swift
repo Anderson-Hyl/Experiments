@@ -79,7 +79,7 @@ extension Reminder.TableColumns {
 
 extension Reminder.Draft: Identifiable, Hashable, Sendable {}
 
-public enum Priority: Int, QueryBindable {
+public enum Priority: Int, QueryBindable, Sendable {
     case low = 1
     case medium
     case high

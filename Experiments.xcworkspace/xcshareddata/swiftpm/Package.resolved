@@ -1,5 +1,5 @@
 {
-  "originHash" : "0d8bdd96baa396da6b9cb998ec9444d3ebba3e030deaab4c35341587a4cbfc17",
+  "originHash" : "5d00b9b706c46adec5560d4c3ada64977febb57231159b6244d9111e412e1600",
   "pins" : [
     {
       "identity" : "cloud-sdk-ios-fiori",
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-perception",
       "state" : {
-        "revision" : "328a0b49e2690135c4c2660661f0ed83f16853e3",
-        "version" : "2.0.4"
+        "revision" : "7d3509c7f4de78ad3eb3d804e036fb62e3585141",
+        "version" : "2.0.5"
       }
     },
     {
@@ -168,8 +168,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "bb12b34a8bf88af3307784da94caee3765a066f2",
-        "version" : "0.11.0"
+        "revision" : "b5b5a9ed9ff321f43a02f07394f2831eba5e11f2",
+        "version" : "0.13.0"
       }
     },
     {
