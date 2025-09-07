@@ -90,13 +90,43 @@ public struct ReminderFormReducer {
                 )
                 return .none
             case .view(.onTappedSaveButton):
-                return .run { [reminder = state.reminder] send in
+							return .run { [reminder = state.reminder, selectedTagIDs = state.selectedTags.map(\.id)] send in
                     @Dependency(\.defaultDatabase) var database
                     try await database.write { db in
-                        try Reminder.upsert { reminder }
-                            .execute(db)
-											// TODO: update `remindersTag` table
-                    }
+                        let reminderID = try Reminder
+												.upsert { reminder }
+												.returning(\.id)
+												.fetchOne(db)!
+											
+											let currentReminderTagIDs = try ReminderTag
+												.where { $0.reminderID.is(reminder.id) }
+												.select(\.tagID)
+												.fetchAll(db)
+											
+											let selectedTagIDs = Set(selectedTagIDs)
+											
+											let tagIDsToDelete = Set(currentReminderTagIDs).subtracting(selectedTagIDs)
+											
+											let tagIDsToInsert = selectedTagIDs
+												.subtracting(currentReminderTagIDs)
+											
+											try ReminderTag
+												.where { $0.reminderID.is(reminder.id) && $0.tagID.in(tagIDsToDelete) }
+												.delete()
+												.execute(db)
+											
+											try ReminderTag
+												.insert {
+													tagIDsToInsert.map {
+														ReminderTag(
+															reminderID: reminderID,
+															tagID: $0
+														)
+													}
+												}
+												.execute(db)
+											
+										}
                     await send(.view(.onTappedCancelButton))
                 }
             case .view(.onTappedCancelButton):
