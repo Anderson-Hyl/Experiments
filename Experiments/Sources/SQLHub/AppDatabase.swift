@@ -79,6 +79,17 @@ public func applicationDB() throws -> any DatabaseWriter {
 				!RemindersList.exists()
 			})
 		.execute(db)
+		try RemindersList.createTemporaryTrigger(afterInsertTouch: { $0.position = RemindersList.count() - 1 })
+		.execute(db)
+		
+		try ReminderTag.createTemporaryTrigger(before: .insert { new in
+			#sql("SELECT RAISE(ABORT, 'Reminders can have a maximum of 5 tags.') ")
+		} when: { new in
+			ReminderTag
+				.where { $0.reminderID.eq(new.reminderID) }
+				.count() >= 5
+		})
+		.execute(db)
 	}
 	
 	// call these code when new install to give seed sample data()
@@ -562,6 +573,9 @@ extension DatabaseMigrator {
 				Tag(id: 1, title: "weekend")
 				Tag(id: 2, title: "fun")
 				Tag(id: 3, title: "easy-win")
+				Tag(id: 4, title: "exercise")
+				Tag(id: 5, title: "sqlite-hub")
+				Tag(id: 6, title: "metal")
 
 				ReminderTag(reminderID: 1, tagID: 1)
 				ReminderTag(reminderID: 2, tagID: 1)

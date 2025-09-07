@@ -20,6 +20,7 @@ public struct ReminderFormReducer {
         @FetchOne
         var remindersList: RemindersList
         @Presents var destination: Destination.State?
+			@Presents var alert: AlertState<Action.Alert>?
         var reminder: Reminder.Draft
         
         @Shared var selectedTags: [Tag]
@@ -36,6 +37,8 @@ public struct ReminderFormReducer {
     
     @CasePathable
     public enum Action: ViewAction, BindableAction {
+				case alert(PresentationAction<Alert>)
+			case saveAlert(message: String)
         case binding(BindingAction<State>)
         case destination(PresentationAction<Destination.Action>)
         case selectedTagsResult([Tag])
@@ -47,6 +50,10 @@ public struct ReminderFormReducer {
             case onTappedSaveButton
             case onTappedCancelButton
         }
+			
+			public enum Alert: Equatable {
+				case confirm
+			}
     }
     
     public var body: some ReducerOf<Self> {
@@ -55,6 +62,10 @@ public struct ReminderFormReducer {
             state,
             action in
             switch action {
+						case .alert(.presented(.confirm)):
+								return dismissAlert(state: &state)
+						case .alert:
+							return .none
             case .binding(\.reminder.remindersListID):
                 let updatedRemindersListID = state.reminder.remindersListID
                 return .run { [updatedRemindersListID, remindersList = state.$remindersList] _ in
@@ -69,6 +80,19 @@ public struct ReminderFormReducer {
                     $0 = tags
                 }
                 return .none
+						case let .saveAlert(message):
+							state.alert = AlertState(
+								title: { TextState("Failed to save reminder") },
+								actions: {
+									ButtonState(action: .confirm) {
+										TextState("OK")
+									}
+								},
+								message: {
+									TextState(message)
+								}
+							)
+							return .none
             case .view(.onTask):
                 return .run { [reminderID = state.reminder.id] send in
                     @Dependency(\.defaultDatabase) var database
@@ -128,7 +152,15 @@ public struct ReminderFormReducer {
 											
 										}
                     await send(.view(.onTappedCancelButton))
-                }
+							} catch: { error, send in
+								guard let saveTriggerError = error as? DatabaseError,
+											saveTriggerError.resultCode == .SQLITE_CONSTRAINT,
+											saveTriggerError.extendedResultCode == .SQLITE_CONSTRAINT_TRIGGER else {
+									reportIssue(error)
+									return
+								}
+								await send(.saveAlert(message: "Reminders can have a maximum of 5 tags."))
+							}
             case .view(.onTappedCancelButton):
                 return .run { _ in
                     @Dependency(\.dismiss) var dismiss
@@ -137,7 +169,13 @@ public struct ReminderFormReducer {
             }
         }
         .ifLet(\.$destination, action: \.destination)
+				.ifLet(\.$alert, action: \.alert)
     }
+	
+	private func dismissAlert(state: inout State) -> Effect<Action> {
+		state.alert = nil
+		return .none
+	}
 }
 
 
@@ -268,6 +306,7 @@ public struct ReminderForm: View {
             }
             
         }
+				.alert($store.scope(state: \.alert, action: \.alert))
 				.task {
 					await send(.onTask).finish()
 				}
