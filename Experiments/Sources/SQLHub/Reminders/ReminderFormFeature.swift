@@ -268,6 +268,9 @@ public struct ReminderForm: View {
             }
             
         }
+				.task {
+					await send(.onTask).finish()
+				}
         .padding(.top, -28)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

@@ -81,11 +81,12 @@ public func applicationDB() throws -> any DatabaseWriter {
 		.execute(db)
 	}
 	
-#if DEBUG
-	try database.write { db in
-		try db.seedSampleData()
-	}
-	#endif
+	// call these code when new install to give seed sample data()
+//#if DEBUG
+//	try database.write { db in
+//		try db.seedSampleData()
+//	}
+//	#endif
     return database
 }
 
