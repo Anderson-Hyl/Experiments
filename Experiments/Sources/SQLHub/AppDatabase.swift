@@ -2,6 +2,7 @@ import Foundation
 import SharingGRDB
 import OSLog
 import SwiftUI
+import Synchronization
 
 private let logger = Logger(subsystem: "SQLHub", category: "ApplicationDB")
 
@@ -10,7 +11,25 @@ public func applicationDB() throws -> any DatabaseWriter {
 	@Dependency(\.context) var context
 	var migrator = DatabaseMigrator()
 	var configuration = Configuration()
+	
 	configuration.prepareDatabase { db in
+		let task = Mutex<Task<Void, any Error>?>(nil)
+		db.add(function: DatabaseFunction("handleReminderStatusUpdate") { _ in
+			task.withLock {
+				$0?.cancel()
+				$0 = Task {
+					@Dependency(\.defaultDatabase) var database
+					try await Task.sleep(for: .seconds(2))
+					try await database.write { db in
+						try Reminder
+							.where { $0.status.eq(Reminder.Status.completing) }
+							.update { $0.status = .completed }
+							.execute(db)
+					}
+				}
+			}
+			return nil
+		})
 #if DEBUG
 		db.trace(options: .profile) {
 			if context == .live {
@@ -64,6 +83,27 @@ public func applicationDB() throws -> any DatabaseWriter {
 				""")
 		.execute(db)
 	}
+	migrator.registerMigration("Create 'status' to 'reminders' and Drop 'isCompleted' column" ) { db in
+		try #sql(
+			"""
+			ALTER TABLE "reminders"
+			ADD COLUMN "status" INTEGER NOT NULL DEFAULT 0
+			"""
+		).execute(db)
+		
+		try #sql(
+			"""
+			UPDATE "reminders" SET "status" = "isCompleted"
+			"""
+		).execute(db)
+		
+		try #sql(
+			"""
+			ALTER TABLE "reminders"
+			DROP COLUMN "isCompleted"
+			"""
+		).execute(db)
+	}
 	try migrator.migrate(database)
 	
 	// MARK: - triggers
@@ -89,6 +129,17 @@ public func applicationDB() throws -> any DatabaseWriter {
 				.where { $0.reminderID.eq(new.reminderID) }
 				.count() >= 5
 		})
+		.execute(db)
+		
+		try Reminder.createTemporaryTrigger(
+			after: .update{
+					$0.status
+				} forEachRow: { old, new in
+					#sql("SELECT handleReminderStatusUpdate()")
+				} when: { old, new in
+					new.status.eq(Reminder.Status.completing)
+				}
+		)
 		.execute(db)
 	}
 	
@@ -516,7 +567,7 @@ extension DatabaseMigrator {
 				Reminder(
 					id: 4,
 					dueDate: now.addingTimeInterval(-60 * 60 * 24 * 190),
-					isCompleted: true,
+					status: .completed,
 					remindersListID: 1,
 					title: "Take a walk"
 				)
@@ -537,7 +588,7 @@ extension DatabaseMigrator {
 				Reminder(
 					id: 7,
 					dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
-					isCompleted: true,
+					status: .completed,
 					priority: .low,
 					remindersListID: 2,
 					title: "Get laundry"
@@ -545,7 +596,7 @@ extension DatabaseMigrator {
 				Reminder(
 					id: 8,
 					dueDate: now.addingTimeInterval(60 * 60 * 24 * 4),
-					isCompleted: false,
+					status: .incomplete,
 					priority: .high,
 					remindersListID: 2,
 					title: "Take out trash"
@@ -564,7 +615,7 @@ extension DatabaseMigrator {
 				Reminder(
 					id: 10,
 					dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
-					isCompleted: true,
+					status: .completed,
 					priority: .medium,
 					remindersListID: 3,
 					title: "Send weekly emails"

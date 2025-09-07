@@ -21,20 +21,20 @@ public struct Reminder: Identifiable, Equatable, Sendable {
     public let id: Int
     public var createdAt: Date?
     public var dueDate: Date?
-    public var isCompleted = false
     public var isFlagged = false
     public var notes = ""
     public var position = 0
     public var priority: Priority?
     public var remindersListID: RemindersList.ID
     public var title = ""
+	public var status: Status = .incomplete
     public var updatedAt: Date?
     
     public init(
         id: Int,
         createdAt: Date? = nil,
         dueDate: Date? = nil,
-        isCompleted: Bool = false,
+				status: Status = .incomplete,
         isFlagged: Bool = false,
         notes: String = "",
         position: Int = 0,
@@ -46,7 +46,7 @@ public struct Reminder: Identifiable, Equatable, Sendable {
         self.id = id
         self.createdAt = createdAt
         self.dueDate = dueDate
-        self.isCompleted = isCompleted
+			self.status = status
         self.isFlagged = isFlagged
         self.notes = notes
         self.position = position
@@ -55,6 +55,16 @@ public struct Reminder: Identifiable, Equatable, Sendable {
         self.title = title
         self.updatedAt = updatedAt
     }
+	
+	var isCompleted: Bool {
+		status != .incomplete
+	}
+	
+	public enum Status: Int, QueryBindable, Sendable {
+		case completed = 1
+		case completing = 2
+		case incomplete = 0
+	}
 }
 
 extension Reminder {
@@ -63,7 +73,18 @@ extension Reminder {
         .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
 }
 
+extension Updates<Reminder> {
+	mutating func toggleStatus() {
+		self.status = Case(self.status)
+			.when(Reminder.Status.incomplete, then: Reminder.Status.completing)
+			.else(Reminder.Status.incomplete)
+	}
+}
+
 extension Reminder.TableColumns {
+	var isCompleted: some QueryExpression<Bool> {
+		status.neq(Reminder.Status.incomplete)
+	}
     var isPastDue: some QueryExpression<Bool> {
       @Dependency(\.date.now) var now
       return !isCompleted && #sql("coalesce(date(\(dueDate)) < date(\(now)), 0)")

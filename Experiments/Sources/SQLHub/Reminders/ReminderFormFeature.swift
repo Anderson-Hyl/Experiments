@@ -156,7 +156,9 @@ public struct ReminderFormReducer {
 								guard let saveTriggerError = error as? DatabaseError,
 											saveTriggerError.resultCode == .SQLITE_CONSTRAINT,
 											saveTriggerError.extendedResultCode == .SQLITE_CONSTRAINT_TRIGGER else {
+									@Dependency(\.dismiss) var dismiss
 									reportIssue(error)
+									await dismiss()
 									return
 								}
 								await send(.saveAlert(message: "Reminders can have a maximum of 5 tags."))

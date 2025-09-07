@@ -15,8 +15,6 @@ public struct ReminderRow: View {
     let deleteAction: () -> Void
     let toggleFlagAction: () -> Void
     
-    @State var isCompleted: Bool
-    
     @Dependency(\.defaultDatabase) var database
     
     public init(
@@ -38,7 +36,6 @@ public struct ReminderRow: View {
         self.remindersList = remindersList
         self.showCompleted = showCompleted
         self.tags = tags
-        self.isCompleted = reminder.isCompleted
         self.editAction = editAction
         self.deleteAction = deleteAction
         self.toggleFlagAction = toggleFlagAction
@@ -50,8 +47,8 @@ public struct ReminderRow: View {
                 Button {
                     completeButtonTapped()
                 } label: {
-                    Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
-                        .foregroundStyle(isCompleted ? Color.gray : remindersList.color)
+									Image(systemName: reminder.isCompleted ? "circle.inset.filled" : "circle")
+                        .foregroundStyle(reminder.isCompleted ? Color.gray : remindersList.color)
                         .font(.title2)
                 }
                 VStack(alignment: .leading) {
@@ -101,28 +98,23 @@ public struct ReminderRow: View {
         HStack {
             if let priority = reminder.priority {
                 Text(String(repeating: "!", count: priority.rawValue))
-                    .foregroundStyle(isCompleted ? .gray : remindersList.color)
+								.foregroundStyle(reminder.isCompleted ? .gray : remindersList.color)
             }
             Text(reminder.title)
-                .foregroundStyle(isCompleted ? .gray : .primary)
+                .foregroundStyle(reminder.isCompleted ? .gray : .primary)
         }
         .font(.title3)
     }
     
     private func completeButtonTapped() {
-        if showCompleted {
-            withErrorReporting {
-                try database.write { db in
-                    isCompleted = try Reminder
-                        .find(reminder.id)
-                        .update { $0.isCompleted.toggle() }
-                        .returning(\.isCompleted)
-                        .fetchOne(db) ?? isCompleted
-                }
-            }
-        } else {
-            isCompleted.toggle()
-        }
+			withErrorReporting {
+					try database.write { db in
+							try Reminder
+									.find(reminder.id)
+									.update { $0.toggleStatus() }
+									.execute(db)
+					}
+			}
     }
     
     private var dueText: Text {

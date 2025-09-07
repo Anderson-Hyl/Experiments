@@ -234,7 +234,7 @@ public struct RemindersListView: View {
         List {
             Section {
                 remindersListHeatMap
-                    .padding(.horizontal, -20)
+//                    .padding(.horizontal, -20)
             }
             
             Section {
@@ -258,7 +258,7 @@ public struct RemindersListView: View {
                     }
                     .swipeActions {
                         Button(role: .destructive) {
-                            send(.onTapDeleteRemindersList(remindersListState.remindersList.id))
+													send(.onTapDeleteRemindersList(remindersListState.remindersList.id), animation: .default)
                         } label: {
                             Image(systemName: "trash")
                         }
