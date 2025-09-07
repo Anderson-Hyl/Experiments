@@ -71,15 +71,12 @@ public struct ReminderFormReducer {
                 return .none
             case .view(.onTask):
                 return .run { [reminderID = state.reminder.id] send in
-                    guard let reminderID else {
-                        return
-                    }
                     @Dependency(\.defaultDatabase) var database
                     let selectedTags: [Tag] = try await database.read { db in
                         try Tag
                             .order(by: \.title)
                             .join(ReminderTag.all) { $0.id.eq($1.tagID) }
-                            .where { $1.reminderID.eq(reminderID) }
+                            .where { $1.reminderID.is(reminderID) }
                             .select { tag, _ in tag }
                             .fetchAll(db)
                     }
