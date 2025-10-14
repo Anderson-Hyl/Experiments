@@ -4,7 +4,7 @@ import SwiftUI
 
 @Table
 public struct RemindersList: Identifiable, Equatable, Hashable, Sendable {
-    public let id: Int
+    public let id: UUID
     @Column(as: Color.HexRepresentation.self)
     public var color: Color = Self.defaultColor
     public var position = 0
@@ -12,13 +12,20 @@ public struct RemindersList: Identifiable, Equatable, Hashable, Sendable {
     
     public static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
     public static var defaultTitle: String { "Personal" }
+    
+    public init(id: UUID, color: Color = Self.defaultColor, position: Int = 0, title: String) {
+        self.id = id
+        self.color = color
+        self.position = position
+        self.title = title
+    }
 }
 
 extension RemindersList.Draft: Identifiable, Equatable, Hashable, Sendable {}
 
 @Table
 public struct Reminder: Identifiable, Equatable, Sendable {
-    public let id: Int
+    public let id: UUID
     public var createdAt: Date?
     public var dueDate: Date?
     public var isFlagged = false
@@ -31,10 +38,10 @@ public struct Reminder: Identifiable, Equatable, Sendable {
     public var updatedAt: Date?
     
     public init(
-        id: Int,
+        id: UUID,
         createdAt: Date? = nil,
         dueDate: Date? = nil,
-				status: Status = .incomplete,
+        status: Status = .incomplete,
         isFlagged: Bool = false,
         notes: String = "",
         position: Int = 0,
@@ -49,6 +56,7 @@ public struct Reminder: Identifiable, Equatable, Sendable {
 			self.status = status
         self.isFlagged = isFlagged
         self.notes = notes
+        self.status = status
         self.position = position
         self.priority = priority
         self.remindersListID = remindersListID
@@ -109,8 +117,7 @@ public enum Priority: Int, QueryBindable, Sendable {
 @Table
 public struct Tag: Identifiable, Equatable, Hashable, Sendable {
     public let id: Int
-    public var title = ""
-    
+    public var title: String
     public init(
         id: Int,
         title: String = ""
@@ -120,21 +127,24 @@ public struct Tag: Identifiable, Equatable, Hashable, Sendable {
     }
 }
 
-extension Tag.TableColumns {
+extension Tag?.TableColumns {
   var jsonNames: some QueryExpression<[String].JSONRepresentation> {
-    self.title.jsonGroupArray(filter: self.title.isNot(nil))
+    (self.title ?? "").jsonGroupArray(filter: self.id.isNot(nil))
   }
 }
 
 @Table
 public struct ReminderTag: Sendable {
+    public let id: UUID
     public var reminderID: Reminder.ID
     public var tagID: Tag.ID
     
     public init(
+        id: UUID,
         reminderID: Reminder.ID,
         tagID: Tag.ID
     ) {
+        self.id = id
         self.reminderID = reminderID
         self.tagID = tagID
     }

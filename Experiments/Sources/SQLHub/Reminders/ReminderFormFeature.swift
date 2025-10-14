@@ -143,7 +143,7 @@ public struct ReminderFormReducer {
 												.insert {
 													tagIDsToInsert.map {
 														ReminderTag(
-															reminderID: reminderID,
+                                                            id: UUID(), reminderID: reminderID,
 															tagID: $0
 														)
 													}

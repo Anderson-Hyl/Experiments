@@ -102,17 +102,17 @@ public struct RemindersDetailReducer {
         fileprivate var remindersQuery: some StructuredQueriesCore.Statement<Row> & Sendable {
             Reminder
                 .where {
-									if detailType != .completed && !showCompleted {
-										$0.status.neq(Reminder.Status.completed)
-									}
+                    if detailType != .completed && !showCompleted {
+                        $0.status.neq(Reminder.Status.completed)
+                    }
                 }
-								.order {
-									if showCompleted {
-										$0.isCompleted
-									} else {
-										$0.status.eq(Reminder.Status.completed)
-									}
-								}
+                .order {
+                    if showCompleted {
+                        $0.isCompleted
+                    } else {
+                        $0.status.eq(Reminder.Status.completed)
+                    }
+                }
                 .order {
                     switch ordering {
                     case .dueDate: $0.dueDate.asc(nulls: .last)
