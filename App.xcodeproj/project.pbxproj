@@ -11,8 +11,23 @@
 		719A3EF02E499F88008E8198 /* ChartsHub in Frameworks */ = {isa = PBXBuildFile; productRef = 719A3EEF2E499F88008E8198 /* ChartsHub */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		713D5EFB2E9DFB280075F978 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		712743A02E44916F001393C3 /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		713D5EE82E9DFB270075F978 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		713D5EEA2E9DFB270075F978 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -69,6 +84,8 @@
 		712743C62E44A544001393C3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				713D5EE82E9DFB270075F978 /* WidgetKit.framework */,
+				713D5EEA2E9DFB270075F978 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -83,6 +100,7 @@
 				7127439C2E44916F001393C3 /* Sources */,
 				7127439D2E44916F001393C3 /* Frameworks */,
 				7127439E2E44916F001393C3 /* Resources */,
+				713D5EFB2E9DFB280075F978 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);

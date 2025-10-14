@@ -274,9 +274,9 @@ extension DatabaseMigrator {
             try #sql(
                 """
                 CREATE TABLE "reminderTags" (
-                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid())
+                    "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                     "reminderID" TEXT NOT NULL,
-                    "tagID" TEXT NOT NULL,
+                    "tagID" INTEGER NOT NULL,
                 
                     FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
                     FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
