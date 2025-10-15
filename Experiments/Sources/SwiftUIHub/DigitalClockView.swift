@@ -96,12 +96,20 @@ struct TickTextMarks: View {
     let ticks = Array(stride(from: 0, to: 12, by: 3))
     var body: some View {
         ForEach(ticks, id: \.self) { index in
-            Text("\(index)")
-                .monospaced()
-                .font(.caption)
-                .bold()
-                .rotationEffect(.degrees(Double(index) * 30))
-                .offset(x: size/2 * sin(180 - Double(index) * 30), y: size/2 * cos(180 - Double(index) * 30))
+            ZStack {
+                // 内部的 Text 只负责显示内容和方向纠正
+                Text("\(index)")
+                    .monospaced()
+                    .font(.caption)
+                    .bold()
+                    // 3. 纠正旋转：只旋转 Text 自身的内容方向
+                    //    锚点是 Text 自己的中心，只会改变其方向，不改变其位置
+                    .rotationEffect(.degrees(-Double(index) * 30))
+            }
+            // 2. 偏移：在已旋转的坐标系中，将整个 ZStack 移到边缘
+            .offset(y: -size / 2)
+            // 1. 旋转定位：将整个 ZStack (Text + offset) 旋转到正确位置
+            .rotationEffect(.degrees(Double(index) * 30))
         }
     }
 }
