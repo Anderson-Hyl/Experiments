@@ -28,6 +28,10 @@ let package = Package(
             name: "SQLHub",
             targets: ["SQLHub"]
         ),
+        .library(
+            name: "SwiftUIHub",
+            targets: ["SwiftUIHub"]
+        )
     ],
     dependencies: [
         .package(
@@ -89,6 +93,12 @@ let package = Package(
                 ),
                 .product(name: "Kingfisher", package: "Kingfisher"),
                 .product(name: "FioriSwiftUI", package: "cloud-sdk-ios-fiori"),
+            ],
+        ),
+        .target(
+            name: "SwiftUIHub",
+            dependencies: [
+                
             ],
         ),
     ],

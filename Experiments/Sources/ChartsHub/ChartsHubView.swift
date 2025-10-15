@@ -49,6 +49,15 @@ public struct ChartsHubView: View {
                     .foregroundStyle(Color.accentColor.gradient)
                     .bold()
             }
+            
+            Section {
+                AppleDemoBarChart()
+            } header: {
+                Text("Charts framework demo from Apple")
+                    .font(.title)
+                    .foregroundStyle(Color.accentColor.gradient)
+                    .bold()
+            }
         }
 
         .navigationTitle("Charts")

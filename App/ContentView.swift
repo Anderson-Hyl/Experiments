@@ -1,6 +1,7 @@
 import SwiftUI
 import SQLHub
 import ChartsHub
+import SwiftUIHub
 import ComposableArchitecture
 
 struct ContentView: View {
@@ -29,16 +30,11 @@ struct ContentView: View {
                 Text("Reminders Experiment")
             }
             
-//            NavigationLink {
-//                ChatMainView(
-//                    store: Store(
-//                        initialState: ChatMainReducer.State(),
-//                        reducer: { ChatMainReducer() }
-//                    )
-//                )
-//            } label: {
-//                Text("Chats Experiment")
-//            }
+            NavigationLink {
+                SwiftUIHubView()
+            } label: {
+                Text("SwiftUI Experiment")
+            }
         }
         .foregroundStyle(.primary)
         .navigationTitle("Experiments")
