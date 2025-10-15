@@ -99,9 +99,9 @@ struct TickTextMarks: View {
             Text("\(index)")
                 .monospaced()
                 .font(.caption)
-                .offset(y: -size / 2)
                 .bold()
                 .rotationEffect(.degrees(Double(index) * 30))
+                .offset(x: size/2 * sin(180 - Double(index) * 30), y: size/2 * cos(180 - Double(index) * 30))
         }
     }
 }
