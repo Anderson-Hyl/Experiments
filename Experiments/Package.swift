@@ -59,6 +59,7 @@ let package = Package(
             url: "https://github.com/SAP/cloud-sdk-ios-fiori.git",
             from: "25.4.5"
         ),
+        .package(url: "https://github.com/Anderson-Hyl/DependenciesExtra.git", from: "1.0.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -93,12 +94,14 @@ let package = Package(
                 ),
                 .product(name: "Kingfisher", package: "Kingfisher"),
                 .product(name: "FioriSwiftUI", package: "cloud-sdk-ios-fiori"),
+                
             ],
         ),
         .target(
             name: "SwiftUIHub",
             dependencies: [
-                
+                .product(name: "FileSystemClient", package: "DependenciesExtra"),
+                .product(name: "EventBusClient", package: "DependenciesExtra"),
             ],
         ),
     ],

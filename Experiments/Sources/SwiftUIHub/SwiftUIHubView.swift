@@ -6,11 +6,25 @@ public struct SwiftUIHubView: View {
         Form {
             Section {
                 if #available(iOS 26.0, *) {
-                    AnimatableWithMacroView()
+                    NavigationLink {
+                        AnimatableWithMacroView()
+                    } label: {
+                        Text("AnimatableMacro")
+                    }
                 }
-            } header: {
-                Text("AnimatableMacro")
+                NavigationLink {
+                    LandmarkTipsView()
+                } label: {
+                    Text("TipsKit")
+                }
+
             }
         }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SwiftUIHubView()
     }
 }
