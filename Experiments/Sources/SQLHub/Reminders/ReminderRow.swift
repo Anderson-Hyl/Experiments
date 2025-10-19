@@ -47,9 +47,7 @@ public struct ReminderRow: View {
                 Button {
                     completeButtonTapped()
                 } label: {
-									Image(systemName: reminder.isCompleted ? "circle.inset.filled" : "circle")
-                        .foregroundStyle(reminder.isCompleted ? Color.gray : remindersList.color)
-                        .font(.title2)
+									Image(systemName: reminder.sfSymbolName)
                 }
                 VStack(alignment: .leading) {
                     title(for: reminder)

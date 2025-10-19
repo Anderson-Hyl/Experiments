@@ -68,6 +68,14 @@ public struct Reminder: Identifiable, Equatable, Sendable {
 		status != .incomplete
 	}
 	
+	var sfSymbolName: String {
+		switch status {
+		case .completed: "circle.inset.filled"
+		case .completing: "circle.dashed"
+		case .incomplete: "circle"
+		}
+	}
+	
 	public enum Status: Int, QueryBindable, Sendable {
 		case completed = 1
 		case completing = 2
