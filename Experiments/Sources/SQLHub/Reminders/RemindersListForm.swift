@@ -1,6 +1,7 @@
 import SwiftUI
 import SharingGRDB
 import IssueReporting
+import Utils
 
 public struct RemindersListForm: View {
     @Dependency(\.defaultDatabase) private var database
@@ -15,14 +16,14 @@ public struct RemindersListForm: View {
                 VStack {
                     TextField("List Name", text: $remindersList.title)
                       .font(.system(.title2, design: .rounded, weight: .bold))
-                      .foregroundStyle(remindersList.color)
+                      .foregroundStyle(remindersList.color.swiftUIColor)
                       .multilineTextAlignment(.center)
                       .padding()
                       .textFieldStyle(.plain)
                 }
                 .clipShape(.buttonBorder)
             }
-            ColorPicker("Color", selection: $remindersList.color)
+            ColorPicker("Color", selection: $remindersList.color.swiftUIColor)
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("Add Reminder List")

@@ -24,18 +24,28 @@ public struct SearchRemindersReducer {
             
         }
     }
+    
+    private enum SearchTaskID { case searchDebounce }
 
     public var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce { state, action in
             switch action {
             case .binding(\.searchText):
-                if !state.searchText.isEmpty {
-                    return .run { [reminders = state.$reminders] send in
-                        try await reminders.load()
-                    }
+                guard !state.searchText.isEmpty else {
+                    return .cancel(id: SearchTaskID.searchDebounce)
                 }
-                return .none
+                return .run { [searchText = state.searchText, reminders = state.$reminders] send in
+                    try await Task.sleep(for: .milliseconds(300))
+                    try await reminders.load(
+                        Reminder.where { reminder in
+                            for term in searchText.split(separator: " ") {
+                                reminder.title.contains(term) || reminder.notes.contains(term)
+                            }
+                        }
+                    )
+                }
+                .cancellable(id: SearchTaskID.searchDebounce, cancelInFlight: true)
             case .binding:
                 return .none
             case .view:
@@ -53,7 +63,7 @@ public struct SearchRemindersView: View {
     }
     public var body: some View {
         ForEach(store.reminders) { reminder in
-            ReminderRow(
+            ReminderRowView(
                 color: .blue,
                 isPastDue: false,
                 notes: "",

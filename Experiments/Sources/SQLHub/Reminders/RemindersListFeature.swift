@@ -261,7 +261,7 @@ public struct RemindersListView: View {
                                 Text("\(remindersListState.remindersCount)")
                                     .foregroundStyle(.gray)
                             }
-                            .foregroundStyle(remindersListState.remindersList.color)
+                            .foregroundStyle(remindersListState.remindersList.color.swiftUIColor)
                             .contentShape(.rect)
                         }
                         .swipeActions {

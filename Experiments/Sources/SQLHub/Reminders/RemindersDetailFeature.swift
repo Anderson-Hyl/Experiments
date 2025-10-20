@@ -34,7 +34,7 @@ public struct RemindersDetailReducer {
             case .all: .primary
             case .completed: Color(hex: 0x6FBF5F)
             case .flagged: Color(hex: 0xE66D74)
-            case let .remindersList(remindersList): remindersList.color
+            case let .remindersList(remindersList): remindersList.color.swiftUIColor
             case .scheduled: Color(hex: 0x5E79E6)
             case .tags: Color(hex: 0x3DAE83)
             case .today: Color(hex: 0x2FB59B)
@@ -70,7 +70,7 @@ public struct RemindersDetailReducer {
     @ObservableState
     public struct State: Equatable {
         let detailType: DetailType
-        @FetchAll var reminderRows: [Row]
+        @FetchAll var reminderRows: [ReminderRow]
         @Shared var showCompleted: Bool
         @Shared var ordering: Ordering
         @Presents var destination: Destination.State?
@@ -88,17 +88,7 @@ public struct RemindersDetailReducer {
             _reminderRows = FetchAll(remindersQuery)
         }
         
-        @Selection
-        public struct Row: Identifiable, Equatable, Sendable {
-            public var id: Reminder.ID { reminder.id }
-            let reminder: Reminder
-            let isPastDue: Bool
-            let notes: String
-            @Column(as: [String].JSONRepresentation.self)
-            let tags: [String]
-        }
-        
-        fileprivate var remindersQuery: some StructuredQueriesCore.Statement<Row> & Sendable {
+        fileprivate var remindersQuery: some StructuredQueriesCore.Statement<ReminderRow> & Sendable {
             Reminder
                 .where {
                     if detailType != .completed && !showCompleted {
@@ -132,8 +122,10 @@ public struct RemindersDetailReducer {
                     case .today: reminder.isToday
                     }
                 }
+//                .leftJoin(RemindersList.all, on: { $0.remindersListID.eq($3.id) })
                 .select {
-                    Row.Columns(
+                    ReminderRow.Columns(
+                        color: 0x4a99ef_ff,
                         reminder: $0,
                         isPastDue: $0.isPastDue,
                         notes: $0.notes,
@@ -270,7 +262,7 @@ public struct RemindersDetailView: View {
     public var body: some View {
         List {
             ForEach(store.reminderRows) { row in
-                ReminderRow(
+                ReminderRowView(
                     color: store.detailType.color,
                     isPastDue: row.isPastDue,
                     notes: row.notes,

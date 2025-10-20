@@ -288,7 +288,7 @@ public struct ReminderForm: View {
                     HStack {
                       Image(systemName: "list.bullet.circle.fill")
                         .font(.title)
-                        .foregroundStyle(store.remindersList.color)
+                        .foregroundStyle(store.remindersList.color.swiftUIColor)
                       Text("List")
                     }
                 }

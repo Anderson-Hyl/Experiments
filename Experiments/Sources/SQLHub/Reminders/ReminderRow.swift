@@ -3,7 +3,7 @@ import SwiftUI
 import IssueReporting
 import SharingGRDB
 
-public struct ReminderRow: View {
+public struct ReminderRowView: View {
     let color: Color
     let isPastDue: Bool
     let notes: String

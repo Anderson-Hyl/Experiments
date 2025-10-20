@@ -229,12 +229,12 @@ extension DatabaseMigrator {
     
     mutating func registerReminderTables() {
         registerMigration("Create 'Reminders' tables") { db in
-            let defaultListColor = Color.HexRepresentation(queryOutput: RemindersList.defaultColor).hexValue
+            let defaultListColor = 0x4a99ef_ff
             try #sql(
                 """
                 CREATE TABLE "remindersLists" (
                     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                    "color" INTEGER NOT NULL DEFAULT \(raw: defaultListColor ?? 0),
+                    "color" INTEGER NOT NULL DEFAULT \(raw: defaultListColor),
                     "position" INTEGER NOT NULL DEFAULT 0,
                     "title" TEXT NOT NULL
                 ) STRICT

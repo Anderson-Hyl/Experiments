@@ -1,9 +1,26 @@
 import SwiftUI
 
+extension Int {
+  public var swiftUIColor: Color {
+    get {
+      Color(hex: self)
+    }
+    set {
+      guard let components = UIColor(newValue).cgColor.components
+      else { return }
+      let r = Int(components[0] * 0xFF) << 24
+      let g = Int(components[1] * 0xFF) << 16
+      let b = Int(components[2] * 0xFF) << 8
+      let a = Int((components.indices.contains(3) ? components[3] : 1) * 0xFF)
+      self = r | g | b | a
+    }
+  }
+}
+
 public extension Color {
     
     /// 使用整数 Hex（例如 0xFFCC00）和可选 alpha 初始化 Color
-    init(hex: UInt, alpha: Double = 1.0) {
+    init(hex: Int, alpha: Double = 1.0) {
         let red = Double((hex >> 16) & 0xFF) / 255.0
         let green = Double((hex >> 8) & 0xFF) / 255.0
         let blue = Double(hex & 0xFF) / 255.0

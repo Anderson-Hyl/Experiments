@@ -5,20 +5,19 @@ import SwiftUI
 @Table
 public struct RemindersList: Identifiable, Equatable, Hashable, Sendable {
     public let id: UUID
-    @Column(as: Color.HexRepresentation.self)
-    public var color: Color = Self.defaultColor
+    public var color = 0x4a99ef_ff
     public var position = 0
     public var title = ""
     
-    public static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
-    public static var defaultTitle: String { "Personal" }
-    
-    public init(id: UUID, color: Color = Self.defaultColor, position: Int = 0, title: String) {
-        self.id = id
-        self.color = color
-        self.position = position
-        self.title = title
-    }
+//    public static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
+//    public static var defaultTitle: String { "Personal" }
+//    
+//    public init(id: UUID, color: Color = Self.defaultColor, position: Int = 0, title: String) {
+//        self.id = id
+//        self.color = color
+//        self.position = position
+//        self.title = title
+//    }
 }
 
 extension RemindersList.Draft: Identifiable, Equatable, Hashable, Sendable {}
