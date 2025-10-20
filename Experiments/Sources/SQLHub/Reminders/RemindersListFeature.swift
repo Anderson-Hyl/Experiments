@@ -35,6 +35,7 @@ public struct RemindersListReducer {
 
         @Presents
         var destination: Destination.State?
+        var searchReminders = SearchRemindersReducer.State()
 
         @FetchOne(
             Reminder.select {
@@ -115,8 +116,9 @@ public struct RemindersListReducer {
 
     @CasePathable
     public enum Action: ViewAction {
-        case view(View)
         case destination(PresentationAction<Destination.Action>)
+        case searchReminders(SearchRemindersReducer.Action)
+        case view(View)
 
         public enum View {
             case onTask
@@ -129,11 +131,16 @@ public struct RemindersListReducer {
     }
 
     public var body: some ReducerOf<Self> {
+        Scope(state: \.searchReminders, action: \.searchReminders) {
+            SearchRemindersReducer()
+        }
         Reduce {
             state,
             action in
             switch action {
             case .destination:
+                return .none
+            case .searchReminders:
                 return .none
             case .view(.onTask):
                 return .none
@@ -165,8 +172,7 @@ public struct RemindersListReducer {
                     ReminderFormReducer.State(
                         reminder: Reminder.Draft(
                             remindersListID: remindersList.id
-                        ),
-                        remindersList: remindersList,
+                        )
                     )
                 )
                 return .none
@@ -231,57 +237,62 @@ public struct RemindersListView: View {
         self.store = store
     }
     public var body: some View {
+        @Bindable var searchStore = store.scope(state: \.searchReminders, action: \.searchReminders)
         List {
-            Section {
-                remindersListHeatMap
-//                    .padding(.horizontal, -20)
-            }
-            
-            Section {
-                ForEach(store.remindersList) { remindersListState in
-                    Button {
-                        send(.onTapRemindersList(remindersListState.remindersList.id))
-                    } label: {
-                        HStack {
-                            Image(systemName: "list.bullet.circle.fill")
-                                .font(.largeTitle)
-                                .background(
-                                    Color.white.clipShape(Circle()).padding(4)
-                                )
-                            Text(remindersListState.remindersList.title)
-                            Spacer()
-                            Text("\(remindersListState.remindersCount)")
-                                .foregroundStyle(.gray)
-                        }
-                        .foregroundStyle(remindersListState.remindersList.color)
-                        .contentShape(.rect)
-                    }
-                    .swipeActions {
-                        Button(role: .destructive) {
-													send(.onTapDeleteRemindersList(remindersListState.remindersList.id), animation: .default)
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        
-                        Button {
-                            remindersListForm = RemindersList.Draft(remindersListState.remindersList)
-                        } label: {
-                            Image(systemName: "info.circle")
-                        }
-                    }
+            if searchStore.searchText.isEmpty {
+                Section {
+                    remindersListHeatMap
+                    //                    .padding(.horizontal, -20)
                 }
                 
-                .onMove { source, destination in
+                Section {
+                    ForEach(store.remindersList) { remindersListState in
+                        Button {
+                            send(.onTapRemindersList(remindersListState.remindersList.id))
+                        } label: {
+                            HStack {
+                                Image(systemName: "list.bullet.circle.fill")
+                                    .font(.largeTitle)
+                                    .background(
+                                        Color.white.clipShape(Circle()).padding(4)
+                                    )
+                                Text(remindersListState.remindersList.title)
+                                Spacer()
+                                Text("\(remindersListState.remindersCount)")
+                                    .foregroundStyle(.gray)
+                            }
+                            .foregroundStyle(remindersListState.remindersList.color)
+                            .contentShape(.rect)
+                        }
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                send(.onTapDeleteRemindersList(remindersListState.remindersList.id), animation: .default)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            
+                            Button {
+                                remindersListForm = RemindersList.Draft(remindersListState.remindersList)
+                            } label: {
+                                Image(systemName: "info.circle")
+                            }
+                        }
+                    }
                     
+                    .onMove { source, destination in
+                        
+                    }
+                } header: {
+                    Text("My Lists")
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .foregroundStyle(Color(.label))
+                        .textCase(nil)
+                        .padding(.top, -16)
                 }
-            } header: {
-                Text("My Lists")
-                  .font(.system(.title2, design: .rounded, weight: .bold))
-                  .foregroundStyle(Color(.label))
-                  .textCase(nil)
-                  .padding(.top, -16)
+                .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+            } else {
+                SearchRemindersView(store: searchStore)
             }
-            .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
         }
         .listStyle(.insetGrouped)
         .toolbar {
@@ -307,6 +318,7 @@ public struct RemindersListView: View {
                 }
             }
         }
+        .searchable(text: $searchStore.searchText)
         .task {
             await send(.onTask).finish()
         }

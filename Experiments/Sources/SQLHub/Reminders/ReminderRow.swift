@@ -8,7 +8,6 @@ public struct ReminderRow: View {
     let isPastDue: Bool
     let notes: String
     let reminder: Reminder
-    let remindersList: RemindersList
     let showCompleted: Bool
     let tags: [String]
     let editAction: () -> Void
@@ -22,7 +21,6 @@ public struct ReminderRow: View {
         isPastDue: Bool,
         notes: String,
         reminder: Reminder,
-        remindersList: RemindersList,
         showCompleted: Bool,
         tags: [String],
         editAction: @escaping () -> Void,
@@ -33,7 +31,6 @@ public struct ReminderRow: View {
         self.isPastDue = isPastDue
         self.notes = notes
         self.reminder = reminder
-        self.remindersList = remindersList
         self.showCompleted = showCompleted
         self.tags = tags
         self.editAction = editAction
@@ -96,7 +93,7 @@ public struct ReminderRow: View {
         HStack {
             if let priority = reminder.priority {
                 Text(String(repeating: "!", count: priority.rawValue))
-								.foregroundStyle(reminder.isCompleted ? .gray : remindersList.color)
+								.foregroundStyle(reminder.isCompleted ? .gray : color)
             }
             Text(reminder.title)
                 .foregroundStyle(reminder.isCompleted ? .gray : .primary)

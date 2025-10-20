@@ -92,7 +92,6 @@ public struct RemindersDetailReducer {
         public struct Row: Identifiable, Equatable, Sendable {
             public var id: Reminder.ID { reminder.id }
             let reminder: Reminder
-            let remindersList: RemindersList
             let isPastDue: Bool
             let notes: String
             @Column(as: [String].JSONRepresentation.self)
@@ -133,11 +132,9 @@ public struct RemindersDetailReducer {
                     case .today: reminder.isToday
                     }
                 }
-                .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
                 .select {
                     Row.Columns(
                         reminder: $0,
-                        remindersList: $3,
                         isPastDue: $0.isPastDue,
                         notes: $0.notes,
                         tags: #sql("\($2.jsonNames)")
@@ -212,19 +209,14 @@ public struct RemindersDetailReducer {
                 }
                 state.destination = .reminderForm(
                     ReminderFormReducer.State(
-                        reminder: Reminder.Draft(remindersListID: remindersList.id),
-                        remindersList: remindersList,
+                        reminder: Reminder.Draft(remindersListID: remindersList.id)
                     )
                 )
                 return .none
             case let .view(.onTappedEditReminderButton(reminder)):
-                guard let remindersList = state.reminderRows.first(where: { $0.id == reminder.id })?.remindersList else {
-                    return .none
-                }
                 state.destination = .reminderForm(
                     ReminderFormReducer.State(
-                        reminder: Reminder.Draft(reminder),
-                        remindersList: remindersList,
+                        reminder: Reminder.Draft(reminder)
                     )
                 )
                 return .none
@@ -283,7 +275,6 @@ public struct RemindersDetailView: View {
                     isPastDue: row.isPastDue,
                     notes: row.notes,
                     reminder: row.reminder,
-                    remindersList: row.remindersList,
                     showCompleted: true,
                     tags: row.tags,
                     editAction: {

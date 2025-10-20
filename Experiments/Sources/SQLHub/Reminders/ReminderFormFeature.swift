@@ -18,27 +18,23 @@ public struct ReminderFormReducer {
         @FetchAll(RemindersList.order(by: \.title))
         var remindersLists
         @FetchOne
-        var remindersList: RemindersList
+        var remindersList = RemindersList.Draft()
         @Presents var destination: Destination.State?
 			@Presents var alert: AlertState<Action.Alert>?
         var reminder: Reminder.Draft
         
         @Shared var selectedTags: [Tag]
         
-        public init(reminder: Reminder.Draft, remindersList: RemindersList) {
+        public init(reminder: Reminder.Draft) {
             self.reminder = reminder
-            self._remindersList = FetchOne(
-                wrappedValue: remindersList,
-                RemindersList.find(remindersList.id)
-            )
             self._selectedTags = Shared(value: [])
         }
     }
     
     @CasePathable
     public enum Action: ViewAction, BindableAction {
-				case alert(PresentationAction<Alert>)
-			case saveAlert(message: String)
+        case alert(PresentationAction<Alert>)
+        case saveAlert(message: String)
         case binding(BindingAction<State>)
         case destination(PresentationAction<Destination.Action>)
         case selectedTagsResult([Tag])
@@ -62,14 +58,14 @@ public struct ReminderFormReducer {
             state,
             action in
             switch action {
-						case .alert(.presented(.confirm)):
-								return dismissAlert(state: &state)
-						case .alert:
-							return .none
+            case .alert(.presented(.confirm)):
+                return dismissAlert(state: &state)
+            case .alert:
+                return .none
             case .binding(\.reminder.remindersListID):
                 let updatedRemindersListID = state.reminder.remindersListID
                 return .run { [updatedRemindersListID, remindersList = state.$remindersList] _ in
-                    try await remindersList.load(RemindersList.find(updatedRemindersListID))
+                    try await remindersList.load(RemindersList.Draft.find(updatedRemindersListID))
                 }
             case .binding:
                 return .none
@@ -80,19 +76,19 @@ public struct ReminderFormReducer {
                     $0 = tags
                 }
                 return .none
-						case let .saveAlert(message):
-							state.alert = AlertState(
-								title: { TextState("Failed to save reminder") },
-								actions: {
-									ButtonState(action: .confirm) {
-										TextState("OK")
-									}
-								},
-								message: {
-									TextState(message)
-								}
-							)
-							return .none
+            case let .saveAlert(message):
+                state.alert = AlertState(
+                    title: { TextState("Failed to save reminder") },
+                    actions: {
+                        ButtonState(action: .confirm) {
+                            TextState("OK")
+                        }
+                    },
+                    message: {
+                        TextState(message)
+                    }
+                )
+                return .none
             case .view(.onTask):
                 return .run { [reminderID = state.reminder.id] send in
                     @Dependency(\.defaultDatabase) var database
@@ -114,7 +110,7 @@ public struct ReminderFormReducer {
                 )
                 return .none
             case .view(.onTappedSaveButton):
-							return .run { [reminder = state.reminder, selectedTagIDs = state.selectedTags.map(\.id)] send in
+                return .run { [reminder = state.reminder, selectedTagIDs = state.selectedTags.map(\.id)] send in
                     @Dependency(\.defaultDatabase) var database
                     try await database.write { db in
                         let reminderID = try Reminder
