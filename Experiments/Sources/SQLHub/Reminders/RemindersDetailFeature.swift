@@ -122,14 +122,14 @@ public struct RemindersDetailReducer {
                     case .today: reminder.isToday
                     }
                 }
-//                .leftJoin(RemindersList.all, on: { $0.remindersListID.eq($3.id) })
+                .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
                 .select {
                     ReminderRow.Columns(
-                        color: 0x4a99ef_ff,
+                        color: $3.color,
                         reminder: $0,
                         isPastDue: $0.isPastDue,
                         notes: $0.notes,
-                        tags: #sql("\($2.jsonNames)")
+                        tags: #sql("\($2.jsonTitles)")
                     )
                 }
         }

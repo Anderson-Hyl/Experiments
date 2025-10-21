@@ -104,6 +104,17 @@ public func applicationDB() throws -> any DatabaseWriter {
 			"""
 		).execute(db)
 	}
+    
+    migrator.registerMigration("Seed tags") { db in
+        for tag in ["car", "kids", "someday", "optional", "social", "night", "adulting"] {
+            try #sql(
+            """
+            INSERT INTO "tags" ("title")
+            VALUES('\(raw: tag)')
+            """
+            ).execute(db)
+        }
+    }
 	try migrator.migrate(database)
 	
 	// MARK: - triggers

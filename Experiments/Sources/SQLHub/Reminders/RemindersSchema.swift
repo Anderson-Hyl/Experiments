@@ -135,7 +135,7 @@ public struct Tag: Identifiable, Equatable, Hashable, Sendable {
 }
 
 extension Tag?.TableColumns {
-  var jsonNames: some QueryExpression<[String].JSONRepresentation> {
+  var jsonTitles: some QueryExpression<[String].JSONRepresentation> {
     (self.title ?? "").jsonGroupArray(filter: self.id.isNot(nil))
   }
 }
