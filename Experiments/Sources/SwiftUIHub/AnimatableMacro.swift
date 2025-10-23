@@ -21,7 +21,7 @@ struct AnimatableWithoutMacroView: View {
 }
 
 
-@available(iOS 26.0, *)
+@available(iOS 26.0, macOS 26.0, *)
 @Animatable
 struct FloatView: View {
     var number: Float
@@ -30,7 +30,7 @@ struct FloatView: View {
     }
 }
 
-@available(iOS 26.0, *)
+@available(iOS 26.0, macOS 26.0, *)
 struct AnimatableWithMacroView: View {
     @State private var number: Float = 0
     var body: some View {
@@ -47,7 +47,7 @@ struct AnimatableWithMacroView: View {
 #Preview {
     VStack {
         AnimatableWithoutMacroView()
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, macOS 26.0, *) {
             AnimatableWithMacroView()
         } else {
             // Fallback on earlier versions

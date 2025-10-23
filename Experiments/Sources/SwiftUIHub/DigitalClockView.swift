@@ -93,7 +93,7 @@ struct TickMarks: View {
 
 struct TickTextMarks: View {
     let size: CGFloat
-    let ticks = Array(stride(from: 0, to: 12, by: 3))
+    let ticks = Array(stride(from: 3, to: 12, by: 3))
     var body: some View {
         ForEach(ticks, id: \.self) { index in
             ZStack {

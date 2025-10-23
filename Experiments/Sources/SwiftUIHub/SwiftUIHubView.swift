@@ -5,7 +5,7 @@ public struct SwiftUIHubView: View {
     public var body: some View {
         Form {
             Section {
-                if #available(iOS 26.0, *) {
+                if #available(iOS 26.0, macOS 26.0, *) {
                     NavigationLink {
                         AnimatableWithMacroView()
                     } label: {
